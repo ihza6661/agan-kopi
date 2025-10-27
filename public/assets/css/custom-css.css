@@ -1,0 +1,213 @@
+:root {
+    --sidebar-width: 260px;
+    --sidebar-width-collapsed: 72px;
+    --navbar-height: 56px;
+    --bg-soft: #f6f8fb;
+    --card-radius: 12px;
+}
+
+body {
+    background-color: var(--bg-soft);
+}
+
+.card {
+    border-radius: var(--card-radius);
+    border: 1px solid rgba(16, 24, 40, 0.06);
+}
+
+.navbar .navbar-brand span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 40vw;
+}
+
+@media (max-width: 575.98px) {
+    .navbar .navbar-brand span {
+        max-width: 35vw;
+        font-size: 0.95rem;
+    }
+}
+
+.notif-dropdown {
+    min-width: 320px;
+    max-width: min(92vw, 420px);
+    width: max-content;
+}
+
+.notif-dropdown .dropdown-item {
+    white-space: normal;
+}
+
+.notif-dropdown .dropdown-item:active,
+.notif-dropdown .dropdown-item.active,
+.notif-dropdown .dropdown-item:focus {
+    background-color: transparent !important;
+    color: inherit !important;
+}
+
+.notif-dropdown .dropdown-item .fw-semibold,
+.notif-dropdown .dropdown-item .text-muted {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.notif-dropdown form button {
+    white-space: nowrap;
+}
+
+.navbar .btn {
+    display: inline-flex;
+    align-items: center;
+}
+
+.navbar .ms-auto {
+    flex-wrap: wrap;
+}
+
+@media (max-width: 575.98px) {
+    .dropdown-menu.notif-dropdown {
+        position: fixed !important;
+        top: calc(var(--navbar-height) + 4px) !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        right: auto !important;
+        max-width: calc(100vw - 1rem);
+        width: calc(100vw - 1rem);
+        z-index: 1060; /* above content */
+    }
+}
+
+.dropdown-menu.notif-dropdown {
+    max-height: 60vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-behavior: smooth;
+}
+
+.dropdown-menu.notif-dropdown::-webkit-scrollbar {
+    width: 8px;
+}
+.dropdown-menu.notif-dropdown::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+}
+.dropdown-menu.notif-dropdown::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+}
+
+.notif-card {
+    background: #f8f9fa;
+}
+
+.notif-action {
+    color: #0d6efd;
+}
+.notif-action:hover {
+    text-decoration: underline;
+}
+
+.notif-read-all-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    width: 100%;
+    justify-content: center;
+    border-radius: 8px;
+}
+
+.card .card-header {
+    background: #fff;
+    border-bottom: 1px solid rgba(16, 24, 40, 0.06);
+    border-top-left-radius: var(--card-radius);
+    border-top-right-radius: var(--card-radius);
+}
+
+@media (min-width: 992px) {
+    #appSidebar.offcanvas-lg {
+        position: fixed;
+        top: var(--navbar-height);
+        bottom: 0;
+        left: 0;
+        width: var(--sidebar-width);
+        transform: none !important;
+        visibility: visible !important;
+        border-right: 1px solid rgba(0, 0, 0, 0.125);
+        background-color: #fff;
+    }
+
+    body > main {
+        margin-left: var(--sidebar-width);
+        min-height: calc(100vh - var(--navbar-height));
+        background-color: var(--bg-soft);
+    }
+
+    .site-footer {
+        margin-left: var(--sidebar-width);
+    }
+
+    body.sidebar-collapsed #appSidebar.offcanvas-lg {
+        width: var(--sidebar-width-collapsed);
+    }
+    body.sidebar-collapsed > main,
+    body.sidebar-collapsed .site-footer {
+        margin-left: var(--sidebar-width-collapsed);
+    }
+    body.sidebar-collapsed #appSidebar .nav-link span {
+        display: none;
+    }
+    body.sidebar-collapsed #appSidebar .nav-item.small,
+    body.sidebar-collapsed #appSidebar .nav-item.small ~ .nav-item.small {
+        display: none;
+    }
+}
+
+#appSidebar .nav-link {
+    border-radius: 0.5rem;
+    margin: 0 0.5rem;
+    color: #334155;
+}
+
+#appSidebar .nav-link.active {
+    background: #0d6efd;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(13, 110, 253, 0.2);
+}
+
+#appSidebar .nav-link.active:hover {
+    background: #0b5ed7;
+    color: #fff;
+}
+
+#appSidebar .nav-link .bi {
+    width: 1.25rem;
+    text-align: center;
+}
+
+#appSidebar .nav-item.small {
+    letter-spacing: 0.08em;
+}
+
+#appSidebar .nav-link:hover {
+    background: rgba(13, 110, 253, 0.08);
+}
+
+#appSidebar .nav-link:hover {
+    color: #0b2e66;
+}
+
+#appSidebar .nav-link.active:hover {
+    background: #0b5ed7;
+    color: #fff;
+}
+
+@media (max-width: 991.98px) {
+    #appSidebar .offcanvas-body {
+        overflow-y: auto;
+    }
+
+    .site-footer {
+        margin-left: 0;
+    }
+}
