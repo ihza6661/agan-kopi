@@ -7,8 +7,9 @@ use App\Models\Transaction;
 use App\Services\Report\ReportServiceInterface;
 use App\Services\Settings\SettingsServiceInterface;
 use Carbon\Carbon;
-use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class DashboardController extends Controller
 {
@@ -17,7 +18,7 @@ class DashboardController extends Controller
         private readonly SettingsServiceInterface $settings,
     ) {}
 
-    public function index(): View
+    public function index(): Response
     {
         $today = Carbon::today();
         $from7 = (clone $today)->subDays(6);
@@ -72,7 +73,7 @@ class DashboardController extends Controller
             ->selectRaw('COALESCE(p.name, CONCAT("#", d.product_id)) as name, SUM(d.quantity) as qty, SUM(d.total) as total')
             ->get();
 
-        return view('home', [
+        return Inertia::render('Dashboard', [
             'currency' => $this->settings->currency(),
             'salesToday' => $salesToday,
             'trxToday' => $trxToday,
@@ -80,7 +81,6 @@ class DashboardController extends Controller
             'lowStock' => $lowStock,
             'chartLabels' => $dates,
             'chartValues' => $values,
-            'chartMax' => $max,
             'topToday' => $topToday,
             'sales7days' => $sales7days,
             'trx7days' => $trx7days,
@@ -90,3 +90,4 @@ class DashboardController extends Controller
         ]);
     }
 }
+

@@ -13,8 +13,9 @@ use App\Services\Settings\SettingsServiceInterface;
 use App\Services\ActivityLog\ActivityLoggerInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class CashierController extends Controller
 {
@@ -31,13 +32,14 @@ class CashierController extends Controller
         });
     }
 
-    public function index(): View
+    public function index(): Response
     {
-        return view('cashier.index', [
+        return Inertia::render('Cashier/Index', [
             'currency' => $this->settings->currency(),
             'discount_percent' => $this->settings->discountPercent(),
             'tax_percent' => $this->settings->taxPercent(),
-            'receipt_format' => $this->settings->receiptNumberFormat(),
+            'midtrans_client_key' => config('midtrans.client_key'),
+            'midtrans_is_production' => config('midtrans.is_production'),
         ]);
     }
 

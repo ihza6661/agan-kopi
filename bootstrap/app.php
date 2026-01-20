@@ -16,6 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(\App\Http\Middleware\ForceHttps::class);
         $middleware->append(\App\Http\Middleware\ActivityLogger::class);
 
+        // Inertia middleware for web routes
+        $middleware->web(append: [
+            \App\Http\Middleware\HandleInertiaRequests::class,
+        ]);
+
         // Route middleware aliases
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureUserRole::class,

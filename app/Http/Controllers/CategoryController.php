@@ -8,15 +8,19 @@ use App\Http\Requests\Category\UpdateCategoryRequest;
 use App\Models\Category;
 use App\Services\Category\CategoryServiceInterface;
 use App\Services\ActivityLog\ActivityLoggerInterface;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\View\View;
-use Yajra\DataTables\Facades\DataTables;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class CategoryController extends Controller
 {
-    public function __construct(private readonly CategoryServiceInterface $service, private readonly ActivityLoggerInterface $logger)
-    {
+    public function __construct(
+        private readonly CategoryServiceInterface $service,
+        private readonly ActivityLoggerInterface $logger
+    ) {
         $this->middleware(function ($request, $next) {
             if (!Auth::check() || Auth::user()->role !== RoleStatus::ADMIN->value) {
                 abort(403, 'Anda tidak memiliki izin untuk mengakses halaman ini.');
@@ -25,43 +29,37 @@ class CategoryController extends Controller
         });
     }
 
-    public function index(): View
+    public function index(): Response
     {
-        return view('categories.index');
+        return Inertia::render('Categories/Index');
     }
 
-    public function data()
+    public function data(Request $request): JsonResponse
     {
-        $query = Category::query()->select(['id', 'name', 'description', 'created_at']);
+        $q = trim((string) $request->input('q', ''));
+        $perPage = max(1, min(50, (int) $request->input('per_page', 15)));
 
-        return DataTables::of($query)
-            ->addIndexColumn()
-            ->addColumn('action', function (Category $c) {
-                $editUrl = route('kategori.edit', $c);
-                $deleteUrl = route('kategori.destroy', $c);
-                $csrf = csrf_token();
-                return <<<HTML
-                    <div class="d-flex justify-content-end gap-1">
-                        <a href="{$editUrl}" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-pencil-square"></i> Edit
-                        </a>
-                        <form action="{$deleteUrl}" method="POST" class="d-inline" onsubmit="return confirm('Hapus kategori ini? Tindakan tidak dapat dibatalkan.');">
-                            <input type="hidden" name="_token" value="{$csrf}">
-                            <input type="hidden" name="_method" value="DELETE">
-                            <button type="submit" class="btn btn-sm btn-outline-danger">
-                                <i class="bi bi-trash"></i> Hapus
-                            </button>
-                        </form>
-                    </div>
-                HTML;
+        $query = Category::query()
+            ->select(['id', 'name', 'description', 'created_at'])
+            ->when($q !== '', function ($w) use ($q) {
+                $w->where('name', 'like', "%{$q}%");
             })
-            ->rawColumns(['action'])
-            ->toJson();
+            ->orderBy('name');
+
+        $paginated = $query->paginate($perPage);
+
+        return response()->json([
+            'data' => $paginated->items(),
+            'current_page' => $paginated->currentPage(),
+            'last_page' => $paginated->lastPage(),
+            'per_page' => $paginated->perPage(),
+            'total' => $paginated->total(),
+        ]);
     }
 
-    public function create(): View
+    public function create(): Response
     {
-        return view('categories.create');
+        return Inertia::render('Categories/Form');
     }
 
     public function store(StoreCategoryRequest $request): RedirectResponse
@@ -74,9 +72,15 @@ class CategoryController extends Controller
             ->with('success', 'Kategori berhasil ditambahkan.');
     }
 
-    public function edit(Category $category): View
+    public function edit(Category $category): Response
     {
-        return view('categories.edit', compact('category'));
+        return Inertia::render('Categories/Form', [
+            'category' => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'description' => $category->description,
+            ],
+        ]);
     }
 
     public function update(UpdateCategoryRequest $request, Category $category): RedirectResponse
@@ -91,15 +95,20 @@ class CategoryController extends Controller
             ->with('success', 'Kategori berhasil diperbarui.');
     }
 
-    public function destroy(Category $category): RedirectResponse
+    public function destroy(Category $category): RedirectResponse|JsonResponse
     {
         $name = $category->name;
         $id = $category->id;
         $this->service->delete($category);
         $this->logger->log('Hapus Kategori', "Menghapus kategori '{$name}'", ['category_id' => $id]);
 
+        if (request()->expectsJson()) {
+            return response()->json(['deleted' => true]);
+        }
+
         return redirect()
             ->route('kategori.index')
             ->with('success', 'Kategori berhasil dihapus.');
     }
 }
+

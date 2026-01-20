@@ -1,0 +1,62 @@
+import { useState, type PropsWithChildren } from 'react';
+import { Head, usePage } from '@inertiajs/react';
+import { Sidebar, MobileSidebar } from '@/components/Sidebar';
+import { Header } from '@/components/Header';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import type { PageProps } from '@/types/index.d';
+
+interface AppLayoutProps extends PropsWithChildren {
+    title?: string;
+}
+
+export default function AppLayout({ children, title }: AppLayoutProps) {
+    const { flash } = usePage<PageProps>().props;
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+    return (
+        <TooltipProvider>
+            <Head title={title} />
+            
+            <div className="min-h-screen bg-background">
+                {/* Desktop Sidebar */}
+                <Sidebar />
+
+                {/* Mobile sidebar overlay */}
+                {mobileMenuOpen && (
+                    <div
+                        className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+                        onClick={() => setMobileMenuOpen(false)}
+                    />
+                )}
+
+                {/* Mobile Sidebar */}
+                <MobileSidebar 
+                    isOpen={mobileMenuOpen} 
+                    onClose={() => setMobileMenuOpen(false)} 
+                />
+
+                {/* Main content */}
+                <div className="lg:pl-64">
+                    <Header onMenuClick={() => setMobileMenuOpen(!mobileMenuOpen)} />
+
+                    <main className="p-4 lg:p-6">
+                        {/* Flash messages */}
+                        {flash.success && (
+                            <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-4 text-green-800">
+                                {flash.success}
+                            </div>
+                        )}
+                        {flash.error && (
+                            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+                                {flash.error}
+                            </div>
+                        )}
+
+                        {children}
+                    </main>
+                </div>
+            </div>
+        </TooltipProvider>
+    );
+}
+

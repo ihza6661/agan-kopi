@@ -5,20 +5,25 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Services\Auth\AuthServiceInterface;
 use App\Services\ActivityLog\ActivityLoggerInterface;
+use App\Services\Settings\SettingsServiceInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class AuthController extends Controller
 {
     public function __construct(
         private readonly AuthServiceInterface $auth,
-        private readonly ActivityLoggerInterface $logger
+        private readonly ActivityLoggerInterface $logger,
+        private readonly SettingsServiceInterface $settings
     ) {}
 
-    public function showLogin(): View
+    public function showLogin(): Response
     {
-        return view('auth.login');
+        return Inertia::render('Auth/Login', [
+            'appStoreName' => $this->settings->get('store_name', config('app.name', 'POS')),
+        ]);
     }
 
     public function login(LoginRequest $request): RedirectResponse
@@ -50,3 +55,4 @@ class AuthController extends Controller
         return redirect('/login')->with('status', 'Anda telah keluar.');
     }
 }
+

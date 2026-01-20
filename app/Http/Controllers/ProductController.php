@@ -8,16 +8,22 @@ use App\Http\Requests\Product\UpdateProductRequest;
 use App\Models\Category;
 use App\Models\Product;
 use App\Services\Product\ProductServiceInterface;
+use App\Services\Settings\SettingsServiceInterface;
 use App\Services\ActivityLog\ActivityLoggerInterface;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\View\View;
-use Yajra\DataTables\Facades\DataTables;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class ProductController extends Controller
 {
-    public function __construct(private readonly ProductServiceInterface $service, private readonly ActivityLoggerInterface $logger)
-    {
+    public function __construct(
+        private readonly ProductServiceInterface $service,
+        private readonly ActivityLoggerInterface $logger,
+        private readonly SettingsServiceInterface $settings
+    ) {
         $this->middleware(function ($request, $next) {
             if (!Auth::check() || Auth::user()->role !== RoleStatus::ADMIN->value) {
                 abort(403, 'Anda tidak memiliki izin untuk mengakses halaman ini.');
@@ -26,46 +32,46 @@ class ProductController extends Controller
         });
     }
 
-    public function index(): View
+    public function index(): Response
     {
-        return view('products.index');
+        return Inertia::render('Products/Index', [
+            'currency' => $this->settings->currency(),
+        ]);
     }
 
-    public function data()
+    public function data(Request $request): JsonResponse
     {
-        $query = Product::query()->with('category')->select(['id', 'category_id', 'name', 'sku', 'price', 'stock', 'created_at']);
+        $q = trim((string) $request->input('q', ''));
+        $perPage = max(1, min(50, (int) $request->input('per_page', 15)));
 
-        return DataTables::of($query)
-            ->addIndexColumn()
-            ->addColumn('category', fn(Product $p) => $p->category?->name)
-            ->editColumn('price', fn(Product $p) => number_format((float) $p->price, 2, ',', '.'))
-            ->addColumn('action', function (Product $p) {
-                $editUrl = route('produk.edit', $p);
-                $deleteUrl = route('produk.destroy', $p);
-                $csrf = csrf_token();
-                return <<<HTML
-                    <div class="d-flex justify-content-end gap-1">
-                        <a href="{$editUrl}" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-pencil-square"></i> Edit
-                        </a>
-                        <form action="{$deleteUrl}" method="POST" class="d-inline" onsubmit="return confirm('Hapus produk ini? Tindakan tidak dapat dibatalkan.');">
-                            <input type="hidden" name="_token" value="{$csrf}">
-                            <input type="hidden" name="_method" value="DELETE">
-                            <button type="submit" class="btn btn-sm btn-outline-danger">
-                                <i class="bi bi-trash"></i> Hapus
-                            </button>
-                        </form>
-                    </div>
-                HTML;
+        $query = Product::query()
+            ->with('category:id,name')
+            ->select(['id', 'category_id', 'name', 'sku', 'price', 'stock', 'created_at'])
+            ->when($q !== '', function ($w) use ($q) {
+                $w->where(function ($qq) use ($q) {
+                    $qq->where('name', 'like', "%{$q}%")
+                        ->orWhere('sku', 'like', "%{$q}%");
+                });
             })
-            ->rawColumns(['action'])
-            ->toJson();
+            ->orderBy('name');
+
+        $paginated = $query->paginate($perPage);
+
+        return response()->json([
+            'data' => $paginated->items(),
+            'current_page' => $paginated->currentPage(),
+            'last_page' => $paginated->lastPage(),
+            'per_page' => $paginated->perPage(),
+            'total' => $paginated->total(),
+        ]);
     }
 
-    public function create(): View
+    public function create(): Response
     {
-        $categories = Category::query()->orderBy('name')->pluck('name', 'id');
-        return view('products.create', compact('categories'));
+        $categories = Category::query()->orderBy('name')->get(['id', 'name']);
+        return Inertia::render('Products/Form', [
+            'categories' => $categories,
+        ]);
     }
 
     public function store(StoreProductRequest $request): RedirectResponse
@@ -75,10 +81,21 @@ class ProductController extends Controller
         return redirect()->route('produk.index')->with('success', 'Produk berhasil ditambahkan.');
     }
 
-    public function edit(Product $product): View
+    public function edit(Product $product): Response
     {
-        $categories = Category::query()->orderBy('name')->pluck('name', 'id');
-        return view('products.edit', compact('product', 'categories'));
+        $categories = Category::query()->orderBy('name')->get(['id', 'name']);
+        return Inertia::render('Products/Form', [
+            'product' => [
+                'id' => $product->id,
+                'name' => $product->name,
+                'sku' => $product->sku,
+                'price' => (float) $product->price,
+                'stock' => $product->stock,
+                'category_id' => $product->category_id,
+                'description' => $product->description,
+            ],
+            'categories' => $categories,
+        ]);
     }
 
     public function update(UpdateProductRequest $request, Product $product): RedirectResponse
@@ -90,13 +107,19 @@ class ProductController extends Controller
         return redirect()->route('produk.index')->with('success', 'Produk berhasil diperbarui.');
     }
 
-    public function destroy(Product $product): RedirectResponse
+    public function destroy(Product $product): RedirectResponse|JsonResponse
     {
         $name = $product->name;
         $id = $product->id;
         $sku = $product->sku;
         $this->service->delete($product);
         $this->logger->log('Hapus Produk', "Menghapus produk '{$name}'", ['product_id' => $id, 'sku' => $sku]);
+
+        if (request()->expectsJson()) {
+            return response()->json(['deleted' => true]);
+        }
+
         return redirect()->route('produk.index')->with('success', 'Produk berhasil dihapus.');
     }
 }
+

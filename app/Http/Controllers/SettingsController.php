@@ -9,13 +9,16 @@ use App\Services\ActivityLog\ActivityLoggerInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\View\View;
 use Carbon\Carbon;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class SettingsController extends Controller
 {
-    public function __construct(private readonly SettingsServiceInterface $settings, private readonly ActivityLoggerInterface $logger)
-    {
+    public function __construct(
+        private readonly SettingsServiceInterface $settings,
+        private readonly ActivityLoggerInterface $logger
+    ) {
         $this->middleware(function ($request, $next) {
             if (!Auth::check() || Auth::user()->role !== RoleStatus::ADMIN->value) {
                 abort(403, 'Anda tidak memiliki izin untuk mengakses halaman ini.');
@@ -24,19 +27,17 @@ class SettingsController extends Controller
         });
     }
 
-    public function index(): View
+    public function index(): Response
     {
-        $data = [
-            'store_name' => $this->settings->storeName(),
-            'currency' => $this->settings->currency(),
+        return Inertia::render('Settings/Index', [
+            'store_name'       => $this->settings->storeName(),
+            'currency'         => $this->settings->currency(),
             'discount_percent' => $this->settings->discountPercent(),
-            'tax_percent' => $this->settings->taxPercent(),
-            'store_address' => $this->settings->storeAddress(),
-            'store_phone' => $this->settings->storePhone(),
-            'receipt_format' => $this->settings->receiptNumberFormat(),
-        ];
-
-        return view('settings.index', $data);
+            'tax_percent'      => $this->settings->taxPercent(),
+            'store_address'    => $this->settings->storeAddress(),
+            'store_phone'      => $this->settings->storePhone(),
+            'receipt_format'   => $this->settings->receiptNumberFormat(),
+        ]);
     }
 
     public function update(UpdateSettingsRequest $request): RedirectResponse
@@ -130,3 +131,4 @@ class SettingsController extends Controller
         return $result;
     }
 }
+
