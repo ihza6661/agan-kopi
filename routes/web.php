@@ -97,7 +97,7 @@ Route::middleware('auth')->group(function () {
 
         // Pengaturan
         Route::get('/pengaturan', [SettingsController::class, 'index'])->name('pengaturan.index');
-        Route::put('/pengaturan', [SettingsController::class, 'update'])->name('pengaturan.update');
+        Route::match(['put', 'post'], '/pengaturan', [SettingsController::class, 'update'])->name('pengaturan.update');
         Route::get('/pengaturan/preview-receipt', [SettingsController::class, 'previewReceipt'])->name('pengaturan.preview');
 
         // Log Aktivitas
