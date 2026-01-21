@@ -68,6 +68,7 @@ class CashierController extends Controller
     public function checkout(CheckoutRequest $request): RedirectResponse|JsonResponse
     {
         $data = $request->validated();
+        $isAjax = $request->ajax() || $request->wantsJson() || $request->expectsJson();
 
         try {
             $order = $this->cashier->checkout(
@@ -86,22 +87,27 @@ class CashierController extends Controller
                 'note' => $data['note'] ?? null,
             ]);
 
-            if (
-                ($data['payment_method'] === 'qris') &&
-                ($request->ajax() || $request->wantsJson() || $request->expectsJson())
-            ) {
-                $order->loadMissing('latestPayment');
-                $payment = $order->latestPayment;
-                $token = $payment->metadata['snap_token'] ?? null;
-                $redir = $payment->metadata['redirect_url'] ?? null;
-                return response()->json([
+            // Return JSON for all AJAX requests
+            if ($isAjax) {
+                $response = [
                     'transaction_id' => $order->id,
                     'invoice' => $order->invoice_number,
-                    'snap_token' => $token,
-                    'redirect_url' => $redir,
-                ]);
+                ];
+
+                // Add QRIS-specific data if applicable
+                if ($data['payment_method'] === 'qris') {
+                    $order->loadMissing('latestPayment');
+                    $payment = $order->latestPayment;
+                    $response['snap_token'] = $payment->metadata['snap_token'] ?? null;
+                    $response['redirect_url'] = $payment->metadata['redirect_url'] ?? null;
+                }
+
+                return response()->json($response);
             }
         } catch (\Throwable $e) {
+            if ($isAjax) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
             return back()
                 ->withInput()
                 ->with('error', $e->getMessage());

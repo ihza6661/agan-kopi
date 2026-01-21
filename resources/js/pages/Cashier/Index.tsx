@@ -200,9 +200,18 @@ export default function CashierIndex({
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
+                    'X-Requested-With': 'XMLHttpRequest',
                 },
                 body: JSON.stringify(payload),
+                credentials: 'same-origin',
             });
+
+            // Handle CSRF mismatch
+            if (res.status === 419) {
+                alert('Sesi Anda telah kedaluwarsa. Halaman akan dimuat ulang.');
+                window.location.reload();
+                return;
+            }
 
             const data = await res.json();
 
@@ -275,9 +284,17 @@ export default function CashierIndex({
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
+                    'X-Requested-With': 'XMLHttpRequest',
                 },
                 body: JSON.stringify(payload),
+                credentials: 'same-origin',
             });
+
+            if (res.status === 419) {
+                alert('Sesi Anda telah kedaluwarsa. Halaman akan dimuat ulang.');
+                window.location.reload();
+                return;
+            }
 
             const data = await res.json();
 
@@ -312,8 +329,17 @@ export default function CashierIndex({
                 headers: {
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
+                    'X-Requested-With': 'XMLHttpRequest',
                 },
+                credentials: 'same-origin',
             });
+
+            if (res.status === 419) {
+                alert('Sesi Anda telah kedaluwarsa. Halaman akan dimuat ulang.');
+                window.location.reload();
+                return;
+            }
+
             const data = await res.json();
 
             if (data.items) {
@@ -348,7 +374,9 @@ export default function CashierIndex({
                 method: 'DELETE',
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
+                    'X-Requested-With': 'XMLHttpRequest',
                 },
+                credentials: 'same-origin',
             });
             loadHolds();
         } catch {
