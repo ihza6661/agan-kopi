@@ -64,6 +64,10 @@ export default function SettingsIndex({
         e.preventDefault();
         post('/pengaturan', {
             forceFormData: true,
+            // Spoof PUT method for file uploads
+            headers: {
+                'X-HTTP-Method-Override': 'PUT',
+            },
         });
     };
 
