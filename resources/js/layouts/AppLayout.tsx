@@ -3,6 +3,7 @@ import { Head, usePage } from '@inertiajs/react';
 import { Sidebar, MobileSidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { Toaster } from '@/components/ui/toaster';
 import type { PageProps } from '@/types/index.d';
 import { useThemeStore } from '@/stores/themeStore';
 
@@ -81,6 +82,7 @@ export default function AppLayout({ children, title }: AppLayoutProps) {
                     </main>
                 </div>
             </div>
+            <Toaster />
         </TooltipProvider>
     );
 }

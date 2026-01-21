@@ -15,52 +15,28 @@ class CategorySeeder extends Seeder
     {
         $categories = [
             [
-                'name' => 'Minuman',
-                'description' => 'Air mineral, minuman bersoda, teh, isotonik, dan minuman siap saji lainnya.',
+                'name' => 'Kopi',
+                'description' => 'Berbagai macam kopi panas dan dingin seperti kopi hitam, kopi susu, kopi tubruk.',
             ],
             [
-                'name' => 'Makanan Ringan',
-                'description' => 'Snack kemasan seperti keripik, biskuit, cokelat, dan permen.',
+                'name' => 'Teh',
+                'description' => 'Teh manis, teh tawar, teh susu, dan varian teh lainnya.',
             ],
             [
-                'name' => 'Mie & Instan',
-                'description' => 'Mie instan, bubur instan, dan makanan cepat saji lainnya.',
+                'name' => 'Minuman Dingin',
+                'description' => 'Es jeruk, es teh, es campur, dan minuman dingin lainnya.',
             ],
             [
-                'name' => 'Roti & Kue',
-                'description' => 'Roti tawar, roti manis, dan kue-kue kemasan.',
+                'name' => 'Gorengan',
+                'description' => 'Pisang goreng, tempe goreng, tahu goreng, bakwan, dan gorengan lainnya.',
             ],
             [
-                'name' => 'Susu & Olahan',
-                'description' => 'Susu UHT, kental manis, yogurt, dan olahan susu lainnya.',
+                'name' => 'Mie & Nasi',
+                'description' => 'Mie goreng, mie rebus, nasi goreng, dan makanan berat lainnya.',
             ],
             [
-                'name' => 'Bahan Pokok',
-                'description' => 'Beras, gula, minyak goreng, garam, dan kebutuhan dapur dasar.',
-            ],
-            [
-                'name' => 'Bumbu & Saus',
-                'description' => 'Kecap, saus, sambal, kaldu instan, dan bumbu masak.',
-            ],
-            [
-                'name' => 'Kopi & Teh',
-                'description' => 'Kopi bubuk, kopi instan, teh celup dan bubuk.',
-            ],
-            [
-                'name' => 'Perawatan Pribadi',
-                'description' => 'Sabun, sampo, pasta gigi, tisu, dan kebutuhan personal care.',
-            ],
-            [
-                'name' => 'Kebersihan Rumah',
-                'description' => 'Deterjen, cairan pencuci piring, pembersih lantai, dan kebutuhan rumah tangga.',
-            ],
-            [
-                'name' => 'Bayi & Anak',
-                'description' => 'Popok, tisu basah, dan kebutuhan bayi-anak.',
-            ],
-            [
-                'name' => 'Beku',
-                'description' => 'Makanan beku seperti nugget, sosis beku, dan es krim.',
+                'name' => 'Snack',
+                'description' => 'Keripik, kacang, dan cemilan kemasan lainnya.',
             ],
         ];
 

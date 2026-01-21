@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Setting;
+use App\Services\Settings\SettingsServiceInterface;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -12,6 +13,10 @@ class HandleInertiaRequests extends Middleware
      * The root template that is loaded on the first page visit.
      */
     protected $rootView = 'app';
+
+    public function __construct(private readonly SettingsServiceInterface $settings)
+    {
+    }
 
     /**
      * Determine the current asset version.
@@ -43,8 +48,8 @@ class HandleInertiaRequests extends Middleware
             'unreadNotificationsCount' => fn () => $user
                 ? $user->unreadNotifications()->count()
                 : 0,
-            'appStoreName' => fn () => Setting::where('key', 'store_name')->value('value') ?? config('app.name', 'POS'),
-            'appCurrency' => fn () => Setting::where('key', 'currency')->value('value') ?? 'IDR',
+            'appStoreName' => fn () => $this->settings->storeName(),
+            'appCurrency' => fn () => $this->settings->currency(),
         ];
     }
 }

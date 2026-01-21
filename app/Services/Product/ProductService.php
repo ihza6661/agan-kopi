@@ -36,6 +36,11 @@ class ProductService implements ProductServiceInterface
 
     public function delete(Product $product): void
     {
+        // Check if product has transaction details
+        if ($product->transactionDetails()->exists()) {
+            throw new \Exception('Produk tidak dapat dihapus karena sudah memiliki riwayat transaksi.');
+        }
+
         $product->delete();
     }
 

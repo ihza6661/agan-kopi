@@ -112,14 +112,23 @@ class ProductController extends Controller
         $name = $product->name;
         $id = $product->id;
         $sku = $product->sku;
-        $this->service->delete($product);
-        $this->logger->log('Hapus Produk', "Menghapus produk '{$name}'", ['product_id' => $id, 'sku' => $sku]);
 
-        if (request()->expectsJson()) {
-            return response()->json(['deleted' => true]);
+        try {
+            $this->service->delete($product);
+            $this->logger->log('Hapus Produk', "Menghapus produk '{$name}'", ['product_id' => $id, 'sku' => $sku]);
+
+            if (request()->expectsJson()) {
+                return response()->json(['deleted' => true]);
+            }
+
+            return redirect()->route('produk.index')->with('success', 'Produk berhasil dihapus.');
+        } catch (\Exception $e) {
+            if (request()->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+
+            return redirect()->route('produk.index')->with('error', $e->getMessage());
         }
-
-        return redirect()->route('produk.index')->with('success', 'Produk berhasil dihapus.');
     }
 }
 

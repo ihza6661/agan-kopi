@@ -3,7 +3,6 @@
 namespace App\Services\Category;
 
 use App\Models\Category;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class CategoryService implements CategoryServiceInterface
 {
