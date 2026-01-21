@@ -49,7 +49,7 @@ export default function SettingsIndex({
     const [receiptPreview, setReceiptPreview] = useState<string[]>([]);
     const [loadingPreview, setLoadingPreview] = useState(false);
 
-    const { data, setData, post, processing, errors } = useForm<FormData>({
+    const { data, setData, post, processing, errors, transform } = useForm<FormData>({
         store_name: store_name || '',
         currency: currency || 'IDR',
         discount_percent: String(discount_percent || 0),
@@ -62,13 +62,12 @@ export default function SettingsIndex({
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
+        // Use post with _method spoofing for PUT with file upload
         post('/pengaturan', {
             forceFormData: true,
-            // Spoof PUT method for file uploads
-            headers: {
-                'X-HTTP-Method-Override': 'PUT',
-            },
-        });
+            // This tells Inertia to add _method: PUT to the form data
+            method: 'put',
+        } as Parameters<typeof post>[1]);
     };
 
     const handlePreviewReceipt = async () => {
