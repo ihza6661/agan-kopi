@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\RoleStatus;
 use App\Models\Category;
+use App\Models\Product;
 use App\Models\User;
 use App\Services\ActivityLog\ActivityLoggerInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -103,6 +104,27 @@ class CategoryControllerTest extends TestCase
 
         $res->assertRedirect(route('kategori.index'));
         $this->assertDatabaseMissing('categories', ['id' => $cat->id]);
+    }
+
+    public function test_cannot_delete_category_with_products(): void
+    {
+        $this->mockLogger();
+        $this->actingAsAdmin();
+        $cat = Category::factory()->create();
+        
+        // Create products in this category
+        Product::factory()->count(3)->create(['category_id' => $cat->id]);
+
+        // Try to delete via JSON request (like frontend does)
+        $res = $this->deleteJson(route('kategori.destroy', $cat));
+
+        $res->assertStatus(422);
+        $res->assertJson([
+            'message' => 'Kategori tidak dapat dihapus karena masih memiliki 3 produk. Silakan hapus atau pindahkan produk terlebih dahulu.'
+        ]);
+        
+        // Category should still exist
+        $this->assertDatabaseHas('categories', ['id' => $cat->id]);
     }
 
     public function test_validation_on_store(): void

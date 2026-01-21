@@ -5,7 +5,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/components/ui/use-toast';
 import {
     Table,
     TableBody,
@@ -35,6 +34,8 @@ import {
     AlertTriangle,
 } from 'lucide-react';
 import { formatMoney } from '@/lib/utils';
+import { toast } from 'sonner';
+import { fetchWithCsrf } from '@/lib/csrf';
 
 interface Category {
     id: number;
@@ -68,7 +69,6 @@ export default function ProductsIndex({ currency }: ProductsProps) {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
-    const { toast } = useToast();
     const [pagination, setPagination] = useState({
         currentPage: 1,
         lastPage: 1,
@@ -117,39 +117,20 @@ export default function ProductsIndex({ currency }: ProductsProps) {
 
         setDeleting(true);
         try {
-            const response = await fetch(`/produk/${deleteModal.product.id}`, {
+            const res = await fetchWithCsrf(`/produk/${deleteModal.product.id}`, {
                 method: 'DELETE',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
-                },
             });
 
-            const result = await response.json();
-
-            if (!response.ok) {
-                toast({
-                    variant: "destructive",
-                    title: "Gagal menghapus produk",
-                    description: result.message || 'Terjadi kesalahan saat menghapus produk.',
-                });
-                return;
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.message || 'Gagal menghapus produk');
             }
 
-            toast({
-                variant: "success",
-                title: "Produk berhasil dihapus",
-                description: `Produk "${deleteModal.product.name}" telah dihapus.`,
-            });
-
+            toast.success('Produk berhasil dihapus');
             setDeleteModal({ open: false, product: null });
             fetchProducts(pagination.currentPage);
         } catch (error) {
-            toast({
-                variant: "destructive",
-                title: "Gagal menghapus produk",
-                description: 'Terjadi kesalahan. Silakan coba lagi.',
-            });
+            toast.error(error instanceof Error ? error.message : 'Gagal menghapus produk');
         } finally {
             setDeleting(false);
         }
@@ -232,7 +213,7 @@ export default function ProductsIndex({ currency }: ProductsProps) {
                                                 <TableCell className="font-mono text-sm">
                                                     {product.sku}
                                                 </TableCell>
-                                                <TableCell className="font-medium max-w-xs break-words">
+                                                <TableCell className="font-medium">
                                                     {product.name}
                                                 </TableCell>
                                                 <TableCell>
@@ -278,8 +259,8 @@ export default function ProductsIndex({ currency }: ProductsProps) {
 
                     {/* Pagination */}
                     {!loading && products.length > 0 && (
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 py-3 border-t">
-                            <div className="text-sm text-muted-foreground text-center sm:text-left">
+                        <div className="flex items-center justify-between px-4 py-3 border-t">
+                            <div className="text-sm text-muted-foreground">
                                 Menampilkan {((pagination.currentPage - 1) * pagination.perPage) + 1} -{' '}
                                 {Math.min(pagination.currentPage * pagination.perPage, pagination.total)} dari{' '}
                                 {pagination.total} produk
