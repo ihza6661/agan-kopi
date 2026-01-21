@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Enums\RoleStatus;
 use App\Models\ActivityLog;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
-use Yajra\DataTables\Facades\DataTables;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class ActivityLogController extends Controller
 {
@@ -19,36 +22,45 @@ class ActivityLogController extends Controller
         });
     }
 
-    public function index()
+    public function index(): Response
     {
-        return view('activity_logs.index');
+        return Inertia::render('ActivityLogs/Index');
     }
 
-    public function data()
+    public function data(Request $request): JsonResponse
     {
+        $perPage = max(1, min(50, (int) $request->input('per_page', 15)));
+
         $query = ActivityLog::query()
-            ->with('user')
+            ->with('user:id,name')
             ->where(function ($q) {
                 $q->where('activity', 'not like', 'GET %')
                     ->where('activity', 'not like', 'HEAD %')
                     ->where('activity', 'not like', 'OPTIONS %');
             })
+            ->orderByDesc('created_at')
             ->select(['id', 'user_id', 'activity', 'description', 'ip_address', 'user_agent', 'created_at']);
 
-        return DataTables::of($query)
-            ->addIndexColumn()
-            ->addColumn('user_name', fn(ActivityLog $l) => $l->user->name ?? '-')
-            ->editColumn('created_at', fn(ActivityLog $l) => $l->created_at?->format('d/m/Y H:i'))
-            ->editColumn('activity', function (ActivityLog $l) {
-                $title = e($l->description ?? '');
-                $text = e($l->activity);
-                return '<span title="' . $title . '">' . $text . '</span>';
-            })
-            ->editColumn('user_agent', function (ActivityLog $l) {
-                $ua = (string) $l->user_agent;
-                return e(mb_strlen($ua) > 80 ? (mb_substr($ua, 0, 77) . '...') : $ua);
-            })
-            ->rawColumns(['activity'])
-            ->toJson();
+        $paginated = $query->paginate($perPage);
+
+        $data = $paginated->getCollection()->map(function (ActivityLog $log) {
+            return [
+                'id' => $log->id,
+                'user_name' => $log->user?->name ?? '-',
+                'activity' => $log->activity,
+                'description' => $log->description,
+                'ip_address' => $log->ip_address,
+                'user_agent' => $log->user_agent,
+                'created_at' => $log->created_at?->toIso8601String(),
+            ];
+        });
+
+        return response()->json([
+            'data' => $data,
+            'current_page' => $paginated->currentPage(),
+            'last_page' => $paginated->lastPage(),
+            'per_page' => $paginated->perPage(),
+            'total' => $paginated->total(),
+        ]);
     }
 }

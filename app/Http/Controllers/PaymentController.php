@@ -7,33 +7,39 @@ use App\Enums\PaymentMethod;
 use App\Enums\TransactionStatus;
 use App\Models\Payment;
 use App\Models\Transaction;
+use App\Services\Settings\SettingsServiceInterface;
 use Illuminate\Http\JsonResponse;
-use Illuminate\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Yajra\DataTables\Facades\DataTables;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class PaymentController extends Controller
 {
-    public function index(Request $request): View
+    public function __construct(private readonly SettingsServiceInterface $settings) {}
+
+    public function index(Request $request): Response
     {
         if (!Auth::check() || Auth::user()->role !== \App\Enums\RoleStatus::ADMIN->value) {
             abort(403, 'Anda tidak memiliki izin untuk mengakses halaman ini.');
         }
 
-        return view('payments.index', [
-            'q' => trim((string) $request->query('q', '')),
-            'status' => $request->query('status'),
-            'method' => $request->query('method'),
-            'provider' => $request->query('provider'),
-            'from' => $request->query('from'),
-            'to' => $request->query('to'),
-            'statuses' => PaymentStatus::cases(),
-            'methods' => PaymentMethod::cases(),
+        return Inertia::render('Payments/Index', [
+            'currency' => $this->settings->currency(),
+            'statuses' => array_map(fn($s) => ['value' => $s->value], PaymentStatus::cases()),
+            'methods' => array_map(fn($m) => ['value' => $m->value], PaymentMethod::cases()),
+            'filters' => [
+                'q' => trim((string) $request->query('q', '')),
+                'status' => $request->query('status', ''),
+                'method' => $request->query('method', ''),
+                'provider' => $request->query('provider', ''),
+                'from' => $request->query('from', ''),
+                'to' => $request->query('to', ''),
+            ],
         ]);
     }
 
-    public function data(Request $request)
+    public function data(Request $request): JsonResponse
     {
         if (!Auth::check() || Auth::user()->role !== \App\Enums\RoleStatus::ADMIN->value) {
             abort(403, 'Anda tidak memiliki izin untuk mengakses halaman ini.');
@@ -45,6 +51,7 @@ class PaymentController extends Controller
         $provider = $request->input('provider');
         $from = $request->input('from');
         $to = $request->input('to');
+        $perPage = max(1, min(50, (int) $request->input('per_page', 15)));
 
         $query = Payment::query()
             ->with(['transaction.user'])
@@ -74,55 +81,38 @@ class PaymentController extends Controller
             ->orderByDesc('created_at')
             ->select(['id', 'transaction_id', 'method', 'provider', 'provider_order_id', 'status', 'amount', 'paid_at', 'created_at']);
 
-        return DataTables::of($query)
-            ->addIndexColumn()
-            ->addColumn('invoice', function (Payment $p) {
-                $inv = $p->transaction?->invoice_number ?? ('#' . $p->transaction_id);
-                $url = route('transaksi.show', $p->transaction_id);
-                return '<a href="' . e($url) . '">' . e($inv) . '</a>';
-            })
-            ->addColumn('cashier', function (Payment $p) {
-                return e($p->transaction?->user?->name ?? '-');
-            })
-            ->addColumn('method_text', function (Payment $p) {
-                $m = is_string($p->method) ? $p->method : ($p->method?->value ?? '');
-                return strtoupper($m);
-            })
-            ->addColumn('status_badge', function (Payment $p) {
-                $s = is_string($p->status) ? $p->status : ($p->status?->value ?? '');
-                $class = match ($s) {
-                    'settlement' => 'bg-success',
-                    'pending' => 'bg-warning text-dark',
-                    'expire', 'cancel', 'deny', 'failure' => 'bg-danger',
-                    default => 'bg-secondary',
-                };
-                return '<span class="badge ' . $class . '">' . strtoupper($s) . '</span>';
-            })
-            ->editColumn('amount', function (Payment $p) {
-                return 'Rp ' . number_format((float) $p->amount, 0, ',', '.');
-            })
-            ->addColumn('created', fn(Payment $p) => $p->created_at?->format('d/m/Y H:i'))
-            ->addColumn('paid', fn(Payment $p) => $p->paid_at?->format('d/m/Y H:i') ?? '-')
-            ->addColumn('action', function (Payment $p) {
-                $trx = $p->transaction;
-                $showUrl = $trx ? route('transaksi.show', $trx) : '#';
-                $receiptUrl = $trx ? route('transaksi.struk', $trx) : '#';
-                $isQris = ($trx && strtolower((string)($trx->payment_method?->value ?? $trx->payment_method ?? '')) === 'qris');
-                $status = strtolower((string)($p->status->value ?? $p->status ?? ''));
-                $qrisUrl = ($isQris && $status === 'pending') ? route('pembayaran.show', $trx) : null;
-                $btns = '<div class="d-flex justify-content-end gap-1">';
-                $btns .= '<a class="btn btn-sm btn-outline-primary" href="' . e($showUrl) . '"><i class="bi bi-eye"></i></a>';
-                if ($qrisUrl) {
-                    $btns .= '<a class="btn btn-sm btn-outline-success" href="' . e($qrisUrl) . '"><i class="bi bi-qr-code"></i></a>';
-                }
-                $btns .= '<a class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener noreferrer" href="' . e($receiptUrl) . '"><i class="bi bi-receipt-cutoff"></i></a>';
-                $btns .= '</div>';
-                return $btns;
-            })
-            ->rawColumns(['invoice', 'status_badge', 'action'])
-            ->toJson();
+        $paginated = $query->paginate($perPage);
+
+        $data = $paginated->getCollection()->map(function (Payment $p) {
+            $trx = $p->transaction;
+            $isQris = $trx && strtolower((string)($trx->payment_method?->value ?? $trx->payment_method ?? '')) === 'qris';
+            $status = strtolower((string)($p->status->value ?? $p->status ?? ''));
+
+            return [
+                'id' => $p->id,
+                'invoice' => $trx?->invoice_number ?? ('#' . $p->transaction_id),
+                'transaction_id' => $p->transaction_id,
+                'cashier' => $trx?->user?->name ?? '-',
+                'method' => is_string($p->method) ? $p->method : ($p->method?->value ?? ''),
+                'provider' => $p->provider ?? '-',
+                'status' => $status,
+                'amount' => (float) $p->amount,
+                'created_at' => $p->created_at?->toIso8601String(),
+                'paid_at' => $p->paid_at?->toIso8601String(),
+                'is_qris_pending' => $isQris && $status === 'pending',
+            ];
+        });
+
+        return response()->json([
+            'data' => $data,
+            'current_page' => $paginated->currentPage(),
+            'last_page' => $paginated->lastPage(),
+            'per_page' => $paginated->perPage(),
+            'total' => $paginated->total(),
+        ]);
     }
-    public function show(Transaction $transaction): View
+
+    public function show(Transaction $transaction): Response
     {
         $method = strtolower((string) ($transaction->payment_method?->value ?? $transaction->payment_method ?? ''));
         if ($method !== 'qris') {
@@ -135,7 +125,37 @@ class PaymentController extends Controller
             abort(404);
         }
 
-        return view('payments.show', compact('transaction', 'payment'));
+        $transaction->loadMissing('user:id,name');
+
+        return Inertia::render('Payments/Show', [
+            'transaction' => [
+                'id' => $transaction->id,
+                'invoice_number' => $transaction->invoice_number,
+                'payment_method' => is_string($transaction->payment_method)
+                    ? $transaction->payment_method
+                    : ($transaction->payment_method?->value ?? ''),
+                'total' => (float) $transaction->total,
+                'user' => $transaction->user ? [
+                    'id' => $transaction->user->id,
+                    'name' => $transaction->user->name,
+                ] : null,
+            ],
+            'payment' => [
+                'id' => $payment->id,
+                'method' => is_string($payment->method) ? $payment->method : ($payment->method?->value ?? ''),
+                'provider' => $payment->provider,
+                'status' => $status,
+                'amount' => (float) $payment->amount,
+                'created_at' => $payment->created_at?->toIso8601String(),
+                'paid_at' => $payment->paid_at?->toIso8601String(),
+                'snap_token' => $payment->metadata['snap_token'] ?? null,
+                'qr_url' => $payment->qr_url ?? null,
+                'qr_string' => $payment->qr_string ?? null,
+            ],
+            'currency' => $this->settings->currency(),
+            'midtrans_client_key' => config('midtrans.client_key'),
+            'midtrans_is_production' => config('midtrans.is_production'),
+        ]);
     }
 
     public function status(Transaction $transaction): JsonResponse

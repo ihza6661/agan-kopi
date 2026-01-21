@@ -1,9 +1,10 @@
-import { useState, type PropsWithChildren } from 'react';
+import { useState, useEffect, type PropsWithChildren } from 'react';
 import { Head, usePage } from '@inertiajs/react';
 import { Sidebar, MobileSidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import type { PageProps } from '@/types/index.d';
+import { useThemeStore } from '@/stores/themeStore';
 
 interface AppLayoutProps extends PropsWithChildren {
     title?: string;
@@ -12,6 +13,30 @@ interface AppLayoutProps extends PropsWithChildren {
 export default function AppLayout({ children, title }: AppLayoutProps) {
     const { flash } = usePage<PageProps>().props;
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const { theme } = useThemeStore();
+
+    useEffect(() => {
+        const root = window.document.documentElement;
+        
+        const applyTheme = (t: string) => {
+            root.classList.remove('light', 'dark');
+            if (t === 'system') {
+                const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                root.classList.add(systemTheme);
+            } else {
+                root.classList.add(t);
+            }
+        };
+
+        applyTheme(theme);
+
+        if (theme === 'system') {
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            const handleChange = () => applyTheme('system');
+            mediaQuery.addEventListener('change', handleChange);
+            return () => mediaQuery.removeEventListener('change', handleChange);
+        }
+    }, [theme]);
 
     return (
         <TooltipProvider>

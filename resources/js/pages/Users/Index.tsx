@@ -75,7 +75,7 @@ export default function UsersIndex() {
             params.set('page', String(page));
             if (search) params.set('q', search);
 
-            const res = await fetch(`/pengguna/data?${params.toString()}`, {
+            const res = await fetch(`/pengguna-data?${params.toString()}`, {
                 headers: { 'Accept': 'application/json' },
             });
             const data: PaginatedResponse = await res.json();

@@ -72,7 +72,7 @@ export default function CategoriesIndex() {
             params.set('page', String(page));
             if (search) params.set('q', search);
 
-            const res = await fetch(`/kategori/data?${params.toString()}`, {
+            const res = await fetch(`/kategori-data?${params.toString()}`, {
                 headers: { 'Accept': 'application/json' },
             });
             const data: PaginatedResponse = await res.json();

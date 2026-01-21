@@ -86,7 +86,7 @@ export default function ProductsIndex({ currency }: ProductsProps) {
             params.set('page', String(page));
             if (search) params.set('q', search);
 
-            const res = await fetch(`/produk/data?${params.toString()}`, {
+            const res = await fetch(`/produk-data?${params.toString()}`, {
                 headers: { 'Accept': 'application/json' },
             });
             const data: PaginatedResponse = await res.json();

@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import type { PageProps } from '@/types/index.d';
 
 interface HeaderProps {
@@ -89,6 +90,9 @@ export function Header({ onMenuClick }: HeaderProps) {
                     )}
                 </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Theme Toggle */}
+            <ThemeToggle />
 
             {/* User menu */}
             <DropdownMenu>
