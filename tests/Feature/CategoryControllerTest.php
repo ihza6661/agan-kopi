@@ -118,7 +118,7 @@ class CategoryControllerTest extends TestCase
     {
         $this->mockLogger();
         $this->actingAsAdmin();
-        $existing = Category::factory()->create(['name' => 'Satu']);
+        Category::factory()->create(['name' => 'Satu']);
         $cat = Category::factory()->create(['name' => 'Dua']);
 
         $res = $this->put(route('kategori.update', $cat), [

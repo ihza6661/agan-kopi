@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/components/ui/use-toast';
 import {
     Table,
     TableBody,
@@ -67,6 +68,7 @@ export default function ProductsIndex({ currency }: ProductsProps) {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const { toast } = useToast();
     const [pagination, setPagination] = useState({
         currentPage: 1,
         lastPage: 1,
@@ -115,17 +117,39 @@ export default function ProductsIndex({ currency }: ProductsProps) {
 
         setDeleting(true);
         try {
-            await fetch(`/produk/${deleteModal.product.id}`, {
+            const response = await fetch(`/produk/${deleteModal.product.id}`, {
                 method: 'DELETE',
                 headers: {
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
                 },
             });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                toast({
+                    variant: "destructive",
+                    title: "Gagal menghapus produk",
+                    description: result.message || 'Terjadi kesalahan saat menghapus produk.',
+                });
+                return;
+            }
+
+            toast({
+                variant: "success",
+                title: "Produk berhasil dihapus",
+                description: `Produk "${deleteModal.product.name}" telah dihapus.`,
+            });
+
             setDeleteModal({ open: false, product: null });
             fetchProducts(pagination.currentPage);
-        } catch {
-            alert('Gagal menghapus produk.');
+        } catch (error) {
+            toast({
+                variant: "destructive",
+                title: "Gagal menghapus produk",
+                description: 'Terjadi kesalahan. Silakan coba lagi.',
+            });
         } finally {
             setDeleting(false);
         }
@@ -208,7 +232,7 @@ export default function ProductsIndex({ currency }: ProductsProps) {
                                                 <TableCell className="font-mono text-sm">
                                                     {product.sku}
                                                 </TableCell>
-                                                <TableCell className="font-medium">
+                                                <TableCell className="font-medium max-w-xs break-words">
                                                     {product.name}
                                                 </TableCell>
                                                 <TableCell>
@@ -254,8 +278,8 @@ export default function ProductsIndex({ currency }: ProductsProps) {
 
                     {/* Pagination */}
                     {!loading && products.length > 0 && (
-                        <div className="flex items-center justify-between px-4 py-3 border-t">
-                            <div className="text-sm text-muted-foreground">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 py-3 border-t">
+                            <div className="text-sm text-muted-foreground text-center sm:text-left">
                                 Menampilkan {((pagination.currentPage - 1) * pagination.perPage) + 1} -{' '}
                                 {Math.min(pagination.currentPage * pagination.perPage, pagination.total)} dari{' '}
                                 {pagination.total} produk

@@ -168,7 +168,7 @@ export default function TransactionShow({ trx, currency }: TransactionShowProps)
                                     <Separator />
                                     <div>
                                         <span className="text-muted-foreground block mb-1">Catatan</span>
-                                        <span className="text-sm">{trx.note}</span>
+                                        <span className="text-sm break-words">{trx.note}</span>
                                     </div>
                                 </>
                             )}
@@ -269,42 +269,44 @@ export default function TransactionShow({ trx, currency }: TransactionShowProps)
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-12">#</TableHead>
-                                    <TableHead>Produk</TableHead>
-                                    <TableHead>SKU</TableHead>
-                                    <TableHead className="text-right">Harga</TableHead>
-                                    <TableHead className="text-center">Qty</TableHead>
-                                    <TableHead className="text-right">Total</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {trx.details.map((detail, index) => (
-                                    <TableRow key={detail.id}>
-                                        <TableCell className="text-muted-foreground">
-                                            {index + 1}
-                                        </TableCell>
-                                        <TableCell className="font-medium">
-                                            {detail.product?.name || detail.product_name || `Produk #${detail.product_id}`}
-                                        </TableCell>
-                                        <TableCell className="text-muted-foreground">
-                                            {detail.product?.sku || '-'}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            {formatMoney(detail.price, currency)}
-                                        </TableCell>
-                                        <TableCell className="text-center">
-                                            {formatNumber(detail.quantity)}
-                                        </TableCell>
-                                        <TableCell className="text-right font-medium">
-                                            {formatMoney(detail.total, currency)}
-                                        </TableCell>
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-12">#</TableHead>
+                                        <TableHead className="min-w-[150px]">Produk</TableHead>
+                                        <TableHead className="min-w-[100px]">SKU</TableHead>
+                                        <TableHead className="text-right min-w-[80px]">Harga</TableHead>
+                                        <TableHead className="text-center min-w-[60px]">Qty</TableHead>
+                                        <TableHead className="text-right min-w-[80px]">Total</TableHead>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {trx.details.map((detail, index) => (
+                                        <TableRow key={detail.id}>
+                                            <TableCell className="text-muted-foreground">
+                                                {index + 1}
+                                            </TableCell>
+                                            <TableCell className="font-medium break-words">
+                                                {detail.product?.name || detail.product_name || `Produk #${detail.product_id}`}
+                                            </TableCell>
+                                            <TableCell className="text-muted-foreground">
+                                                {detail.product?.sku || '-'}
+                                            </TableCell>
+                                            <TableCell className="text-right whitespace-nowrap">
+                                                {formatMoney(detail.price, currency)}
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                {formatNumber(detail.quantity)}
+                                            </TableCell>
+                                            <TableCell className="text-right font-medium whitespace-nowrap">
+                                                {formatMoney(detail.total, currency)}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </CardContent>
                 </Card>
             </div>

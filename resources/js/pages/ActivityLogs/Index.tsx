@@ -131,12 +131,12 @@ export default function ActivityLogsIndex() {
                                                     })}
                                                 </TableCell>
                                                 <TableCell>{log.user_name || '-'}</TableCell>
-                                                <TableCell title={log.description || ''}>
-                                                    {log.activity}
+                                                <TableCell className="max-w-xs" title={log.description || ''}>
+                                                    <span className="break-words">{log.activity}</span>
                                                 </TableCell>
-                                                <TableCell>{log.ip_address || '-'}</TableCell>
+                                                <TableCell className="whitespace-nowrap">{log.ip_address || '-'}</TableCell>
                                                 <TableCell className="max-w-[200px]" title={log.user_agent || ''}>
-                                                    {truncateText(log.user_agent, 40)}
+                                                    <span className="break-words">{truncateText(log.user_agent, 40)}</span>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -148,8 +148,8 @@ export default function ActivityLogsIndex() {
 
                     {/* Pagination */}
                     {!loading && logs.length > 0 && (
-                        <div className="flex items-center justify-between px-4 py-3 border-t">
-                            <div className="text-sm text-muted-foreground">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 py-3 border-t">
+                            <div className="text-sm text-muted-foreground text-center sm:text-left">
                                 Menampilkan {((pagination.currentPage - 1) * pagination.perPage) + 1} -{' '}
                                 {Math.min(pagination.currentPage * pagination.perPage, pagination.total)} dari{' '}
                                 {pagination.total} log

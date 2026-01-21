@@ -95,7 +95,7 @@ export default function SettingsIndex({
                 </div>
 
                 <form onSubmit={handleSubmit}>
-                    <div className="grid gap-4 lg:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
                         {/* Store Settings */}
                         <Card>
                             <CardHeader>

@@ -176,7 +176,7 @@ export default function TransactionsIndex({
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+                        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
                             <div>
                                 <Label htmlFor="search">Cari</Label>
                                 <div className="relative mt-1">
@@ -346,8 +346,8 @@ export default function TransactionsIndex({
 
                     {/* Pagination */}
                     {!loading && transactions.length > 0 && (
-                        <div className="flex items-center justify-between px-4 py-3 border-t">
-                            <div className="text-sm text-muted-foreground">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 py-3 border-t">
+                            <div className="text-sm text-muted-foreground text-center sm:text-left">
                                 Menampilkan {((pagination.currentPage - 1) * pagination.perPage) + 1} -{' '}
                                 {Math.min(pagination.currentPage * pagination.perPage, pagination.total)} dari{' '}
                                 {pagination.total} transaksi

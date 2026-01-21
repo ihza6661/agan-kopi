@@ -20,7 +20,7 @@ class SettingSeeder extends Seeder
         $settings->set('store.phone', '081234567890', 'store', 'No. Telepon Toko');
         $settings->set('store.logo_path', 'assets/images/logo.webp', 'store', 'Path Logo Toko');
         $settings->set('pos.currency', 'IDR', 'pos', 'Mata uang transaksi');
-        $settings->set('pos.tax_percent', 11, 'pos', 'PPN dalam persen');
+        $settings->set('pos.tax_percent', 0, 'pos', 'PPN dalam persen');
         $settings->set('pos.discount_percent', 0, 'pos', 'Diskon default dalam persen');
         $settings->set('pos.receipt_format', 'INV-{YYYY}{MM}{DD}-{SEQ:6}', 'pos', 'Format Penomoran Struk');
     }

@@ -4,6 +4,7 @@ import AppLayout from '@/layouts/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/ui/use-toast';
 import {
     Table,
     TableBody,
@@ -53,6 +54,7 @@ export default function CategoriesIndex() {
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const { toast } = useToast();
     const [pagination, setPagination] = useState({
         currentPage: 1,
         lastPage: 1,
@@ -101,17 +103,39 @@ export default function CategoriesIndex() {
 
         setDeleting(true);
         try {
-            await fetch(`/kategori/${deleteModal.category.id}`, {
+            const response = await fetch(`/kategori/${deleteModal.category.id}`, {
                 method: 'DELETE',
                 headers: {
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
                 },
             });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                toast({
+                    variant: "destructive",
+                    title: "Gagal menghapus kategori",
+                    description: result.message || 'Terjadi kesalahan saat menghapus kategori.',
+                });
+                return;
+            }
+
+            toast({
+                variant: "success",
+                title: "Kategori berhasil dihapus",
+                description: `Kategori "${deleteModal.category.name}" telah dihapus.`,
+            });
+
             setDeleteModal({ open: false, category: null });
             fetchCategories(pagination.currentPage);
-        } catch {
-            alert('Gagal menghapus kategori.');
+        } catch (error) {
+            toast({
+                variant: "destructive",
+                title: "Gagal menghapus kategori",
+                description: 'Terjadi kesalahan. Silakan coba lagi.',
+            });
         } finally {
             setDeleting(false);
         }
@@ -183,8 +207,10 @@ export default function CategoriesIndex() {
                                                 <TableCell className="font-medium">
                                                     {cat.name}
                                                 </TableCell>
-                                                <TableCell>
-                                                    {cat.description || (
+                                                <TableCell className="max-w-md">
+                                                    {cat.description ? (
+                                                        <span className="break-words">{cat.description}</span>
+                                                    ) : (
                                                         <span className="text-muted-foreground">-</span>
                                                     )}
                                                 </TableCell>
@@ -223,8 +249,8 @@ export default function CategoriesIndex() {
 
                     {/* Pagination */}
                     {!loading && categories.length > 0 && (
-                        <div className="flex items-center justify-between px-4 py-3 border-t">
-                            <div className="text-sm text-muted-foreground">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 py-3 border-t">
+                            <div className="text-sm text-muted-foreground text-center sm:text-left">
                                 Menampilkan {((pagination.currentPage - 1) * pagination.perPage) + 1} -{' '}
                                 {Math.min(pagination.currentPage * pagination.perPage, pagination.total)} dari{' '}
                                 {pagination.total} kategori

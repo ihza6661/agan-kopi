@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { router } from '@inertiajs/react';
 import AppLayout from '@/layouts/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,27 +32,12 @@ import {
     Inbox,
     CheckCircle2,
     Banknote,
-    QrCode,
     Loader2,
     Printer,
 } from 'lucide-react';
 import { useCartStore } from '@/stores/cartStore';
 import { formatMoney, formatNumber, parseMoneyToInt } from '@/lib/utils';
 import type { Product } from '@/types/models';
-
-declare global {
-    interface Window {
-        snap?: {
-            embed: (token: string, options: {
-                embedId: string;
-                onSuccess?: () => void;
-                onPending?: () => void;
-                onError?: () => void;
-                onClose?: () => void;
-            }) => void;
-        };
-    }
-}
 
 interface HoldTransaction {
     id: number;
@@ -68,21 +52,16 @@ interface CashierProps {
     currency: string;
     discount_percent: number;
     tax_percent: number;
-    midtrans_client_key: string;
-    midtrans_is_production: boolean;
 }
 
 export default function CashierIndex({
     currency,
     discount_percent,
     tax_percent,
-    midtrans_client_key,
-    midtrans_is_production,
 }: CashierProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(false);
-    const [paymentMethod, setPaymentMethod] = useState<'cash' | 'qris'>('cash');
     const [paidAmount, setPaidAmount] = useState('');
     const [processing, setProcessing] = useState(false);
     const [holdsOpen, setHoldsOpen] = useState(false);
@@ -93,7 +72,6 @@ export default function CashierIndex({
         transactionId?: number;
         method?: string;
     }>({ open: false });
-    const [showSnapEmbed, setShowSnapEmbed] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const searchTimeoutRef = useRef<number | null>(null);
 
@@ -117,20 +95,6 @@ export default function CashierIndex({
     useEffect(() => {
         setTaxDiscount(tax_percent, discount_percent);
     }, [tax_percent, discount_percent, setTaxDiscount]);
-
-    // Load Midtrans Snap script
-    useEffect(() => {
-        const scriptUrl = midtrans_is_production
-            ? 'https://app.midtrans.com/snap/snap.js'
-            : 'https://app.sandbox.midtrans.com/snap/snap.js';
-        
-        if (!document.querySelector(`script[src="${scriptUrl}"]`)) {
-            const script = document.createElement('script');
-            script.src = scriptUrl;
-            script.setAttribute('data-client-key', midtrans_client_key);
-            document.body.appendChild(script);
-        }
-    }, [midtrans_client_key, midtrans_is_production]);
 
     // Search products
     const searchProducts = useCallback(async (query: string) => {
@@ -178,7 +142,7 @@ export default function CashierIndex({
         const total = getTotal();
         const paidInt = parseMoneyToInt(paidAmount);
 
-        if (paymentMethod === 'cash' && paidInt < total) {
+        if (paidInt < total) {
             alert('Jumlah bayar kurang dari total.');
             return;
         }
@@ -187,9 +151,9 @@ export default function CashierIndex({
 
         try {
             const payload = {
-                payment_method: paymentMethod,
+                payment_method: 'cash',
                 items: items.map(({ product_id, qty }) => ({ product_id, qty })),
-                paid_amount: paymentMethod === 'cash' ? paidInt : null,
+                paid_amount: paidInt,
                 note,
                 suspended_from_id: suspendedFromId,
             };
@@ -219,47 +183,15 @@ export default function CashierIndex({
                 throw new Error(data.message || 'Checkout failed');
             }
 
-            if (paymentMethod === 'cash') {
-                // Cash payment success
-                clearCart();
-                setPaidAmount('');
-                setSuccessModal({
-                    open: true,
-                    invoiceNumber: data.invoice,
-                    transactionId: data.transaction_id,
-                    method: 'cash',
-                });
-            } else {
-                // QRIS payment - embed Snap
-                const snapToken = data.snap_token;
-                const trxId = data.transaction_id;
-
-                if (snapToken && window.snap) {
-                    setShowSnapEmbed(true);
-                    
-                    setTimeout(() => {
-                        window.snap?.embed(snapToken, {
-                            embedId: 'snapContainer',
-                            onSuccess: () => {
-                                clearCart();
-                                setPaidAmount('');
-                                setShowSnapEmbed(false);
-                                router.visit(`/pembayaran/${trxId}/complete`);
-                            },
-                            onPending: () => {
-                                // Start polling for status
-                            },
-                            onError: () => {
-                                alert('Pembayaran gagal. Coba lagi.');
-                                setShowSnapEmbed(false);
-                            },
-                            onClose: () => {
-                                setShowSnapEmbed(false);
-                            },
-                        });
-                    }, 100);
-                }
-            }
+            // Cash payment success
+            clearCart();
+            setPaidAmount('');
+            setSuccessModal({
+                open: true,
+                invoiceNumber: data.invoice,
+                transactionId: data.transaction_id,
+                method: 'cash',
+            });
         } catch (error) {
             alert(error instanceof Error ? error.message : 'Terjadi kesalahan.');
         } finally {
@@ -390,7 +322,7 @@ export default function CashierIndex({
     const total = getTotal();
     const paidInt = parseMoneyToInt(paidAmount);
     const change = Math.max(0, paidInt - total);
-    const canCheckout = items.length > 0 && (paymentMethod !== 'cash' || paidInt >= total);
+    const canCheckout = items.length > 0 && paidInt >= total;
 
     return (
         <AppLayout title="Kasir">
@@ -516,84 +448,86 @@ export default function CashierIndex({
                                     </div>
                                 </div>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="p-0">
                                 {items.length === 0 ? (
                                     <div className="text-center text-muted-foreground py-8">
                                         Keranjang kosong.
                                     </div>
                                 ) : (
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Produk</TableHead>
-                                                <TableHead className="text-right">Harga</TableHead>
-                                                <TableHead className="text-center" style={{ width: 140 }}>Qty</TableHead>
-                                                <TableHead className="text-right">Total</TableHead>
-                                                <TableHead className="w-10"></TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {items.map((item) => (
-                                                <TableRow key={item.product_id}>
-                                                    <TableCell>
-                                                        <div className="font-medium">{item.name}</div>
-                                                        <div className="text-xs text-muted-foreground">
-                                                            ID: {item.product_id}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        {formatMoney(item.price, currency)}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="flex items-center justify-center gap-1">
-                                                            <Button
-                                                                variant="outline"
-                                                                size="icon"
-                                                                className="h-7 w-7"
-                                                                onClick={() => updateQty(item.product_id, item.qty - 1)}
-                                                                disabled={item.qty <= 1}
-                                                            >
-                                                                <Minus className="h-3 w-3" />
-                                                            </Button>
-                                                            <Input
-                                                                type="number"
-                                                                min={1}
-                                                                max={item.stock}
-                                                                value={item.qty}
-                                                                onChange={(e) => updateQty(item.product_id, parseInt(e.target.value) || 1)}
-                                                                className="h-7 w-14 text-center"
-                                                            />
-                                                            <Button
-                                                                variant="outline"
-                                                                size="icon"
-                                                                className="h-7 w-7"
-                                                                onClick={() => updateQty(item.product_id, item.qty + 1)}
-                                                                disabled={item.qty >= item.stock}
-                                                            >
-                                                                <Plus className="h-3 w-3" />
-                                                            </Button>
-                                                        </div>
-                                                        <div className="text-xs text-muted-foreground text-center mt-1">
-                                                            Stok: {item.stock}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        {formatMoney(item.price * item.qty, currency)}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-7 w-7 text-destructive"
-                                                            onClick={() => removeItem(item.product_id)}
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </TableCell>
+                                    <div className="overflow-x-auto">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead className="min-w-[120px]">Produk</TableHead>
+                                                    <TableHead className="text-right min-w-[80px]">Harga</TableHead>
+                                                    <TableHead className="text-center min-w-[140px]">Qty</TableHead>
+                                                    <TableHead className="text-right min-w-[80px]">Total</TableHead>
+                                                    <TableHead className="w-10"></TableHead>
                                                 </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {items.map((item) => (
+                                                    <TableRow key={item.product_id}>
+                                                        <TableCell className="min-w-[120px]">
+                                                            <div className="font-medium break-words">{item.name}</div>
+                                                            <div className="text-xs text-muted-foreground">
+                                                                ID: {item.product_id}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-right whitespace-nowrap">
+                                                            {formatMoney(item.price, currency)}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="flex items-center justify-center gap-1">
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="icon"
+                                                                    className="h-7 w-7 flex-shrink-0"
+                                                                    onClick={() => updateQty(item.product_id, item.qty - 1)}
+                                                                    disabled={item.qty <= 1}
+                                                                >
+                                                                    <Minus className="h-3 w-3" />
+                                                                </Button>
+                                                                <Input
+                                                                    type="number"
+                                                                    min={1}
+                                                                    max={item.stock}
+                                                                    value={item.qty}
+                                                                    onChange={(e) => updateQty(item.product_id, parseInt(e.target.value) || 1)}
+                                                                    className="h-7 w-14 text-center flex-shrink-0"
+                                                                />
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="icon"
+                                                                    className="h-7 w-7 flex-shrink-0"
+                                                                    onClick={() => updateQty(item.product_id, item.qty + 1)}
+                                                                    disabled={item.qty >= item.stock}
+                                                                >
+                                                                    <Plus className="h-3 w-3" />
+                                                                </Button>
+                                                            </div>
+                                                            <div className="text-xs text-muted-foreground text-center mt-1 whitespace-nowrap">
+                                                                Stok: {item.stock}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-right whitespace-nowrap">
+                                                            {formatMoney(item.price * item.qty, currency)}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-7 w-7 text-destructive"
+                                                                onClick={() => removeItem(item.product_id)}
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>
@@ -633,47 +567,37 @@ export default function CashierIndex({
                                     <Label>Metode Pembayaran</Label>
                                     <div className="flex gap-2 mt-2">
                                         <Button
-                                            variant={paymentMethod === 'cash' ? 'default' : 'outline'}
+                                            variant="default"
                                             className="flex-1"
-                                            onClick={() => setPaymentMethod('cash')}
+                                            disabled
                                         >
                                             <Banknote className="h-4 w-4 mr-2" />
                                             Tunai
-                                        </Button>
-                                        <Button
-                                            variant={paymentMethod === 'qris' ? 'default' : 'outline'}
-                                            className="flex-1"
-                                            onClick={() => setPaymentMethod('qris')}
-                                        >
-                                            <QrCode className="h-4 w-4 mr-2" />
-                                            QRIS
                                         </Button>
                                     </div>
                                 </div>
 
                                 {/* Cash payment input */}
-                                {paymentMethod === 'cash' && (
-                                    <div>
-                                        <Label htmlFor="paid_amount">Jumlah Bayar ({currency})</Label>
-                                        <Input
-                                            id="paid_amount"
-                                            type="text"
-                                            inputMode="numeric"
-                                            placeholder="Rp 0"
-                                            value={paidAmount}
-                                            onChange={(e) => {
-                                                const raw = parseMoneyToInt(e.target.value);
-                                                setPaidAmount(formatMoney(raw, currency));
-                                            }}
-                                            className="mt-1"
-                                        />
-                                        {paidInt > 0 && (
-                                            <div className="mt-2 font-semibold text-success">
-                                                Kembalian: {formatMoney(change, currency)}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+                                <div>
+                                    <Label htmlFor="paid_amount">Jumlah Bayar ({currency})</Label>
+                                    <Input
+                                        id="paid_amount"
+                                        type="text"
+                                        inputMode="numeric"
+                                        placeholder="Rp 0"
+                                        value={paidAmount}
+                                        onChange={(e) => {
+                                            const raw = parseMoneyToInt(e.target.value);
+                                            setPaidAmount(formatMoney(raw, currency));
+                                        }}
+                                        className="mt-1"
+                                    />
+                                    {paidInt > 0 && (
+                                        <div className="mt-2 font-semibold text-success">
+                                            Kembalian: {formatMoney(change, currency)}
+                                        </div>
+                                    )}
+                                </div>
 
                                 {/* Note */}
                                 <div>
@@ -688,21 +612,6 @@ export default function CashierIndex({
                                         className="mt-1"
                                     />
                                 </div>
-
-                                {/* QRIS Snap Embed */}
-                                {showSnapEmbed && (
-                                    <Card>
-                                        <CardHeader className="pb-2">
-                                            <CardTitle className="text-sm flex items-center gap-2">
-                                                <QrCode className="h-4 w-4" />
-                                                Pembayaran QRIS
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <div id="snapContainer"></div>
-                                        </CardContent>
-                                    </Card>
-                                )}
 
                                 {/* Checkout Button */}
                                 <Button
