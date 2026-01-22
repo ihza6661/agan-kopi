@@ -99,7 +99,7 @@ export function Sidebar() {
         <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 border-r bg-sidebar-background">
             <div className="flex h-16 items-center gap-2 px-6 border-b">
                 <img
-                    src="/assets/images/logo.webp"
+                    src="/assets/images/logo.jpg"
                     alt="Logo"
                     className="h-8 w-8"
                 />
@@ -173,7 +173,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
             <div className="flex h-16 items-center justify-between px-6 border-b">
                 <div className="flex items-center gap-2">
                     <img
-                        src="/assets/images/logo.webp"
+                        src="/assets/images/logo.jpg"
                         alt="Logo"
                         className="h-8 w-8"
                     />

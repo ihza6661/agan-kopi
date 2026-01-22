@@ -51,7 +51,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             {/* Mobile logo */}
             <div className="flex items-center gap-2 lg:hidden">
                 <img
-                    src="/assets/images/logo.webp"
+                    src="/assets/images/logo.jpg"
                     alt="Logo"
                     className="h-8 w-8"
                 />
