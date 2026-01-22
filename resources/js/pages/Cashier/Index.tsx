@@ -37,6 +37,8 @@ import {
     QrCode,
     Clock,
     XCircle,
+    PlayCircle,
+    StopCircle,
 } from 'lucide-react';
 import { useCartStore } from '@/stores/cartStore';
 import { formatMoney, formatNumber, parseMoneyToInt } from '@/lib/utils';
@@ -83,6 +85,20 @@ export default function CashierIndex({
         transactionId?: number;
         method?: string;
     }>({ open: false });
+    const [shift, setShift] = useState<{
+        id?: number;
+        started_at?: string;
+        opening_cash?: number;
+        cash_total?: number;
+        qris_total?: number;
+        total_sales?: number;
+        transaction_count?: number;
+    } | null>(null);
+    const [shiftLoading, setShiftLoading] = useState(true);
+    const [startShiftModal, setStartShiftModal] = useState(false);
+    const [endShiftModal, setEndShiftModal] = useState(false);
+    const [openingCash, setOpeningCash] = useState('');
+    const [closingCash, setClosingCash] = useState('');
     const searchInputRef = useRef<HTMLInputElement>(null);
     const searchTimeoutRef = useRef<number | null>(null);
 
@@ -106,6 +122,29 @@ export default function CashierIndex({
     useEffect(() => {
         setTaxDiscount(tax_percent, discount_percent);
     }, [tax_percent, discount_percent, setTaxDiscount]);
+
+    // Fetch current shift status on mount
+    useEffect(() => {
+        const fetchShiftStatus = async () => {
+            try {
+                const res = await fetch('/shift/status', {
+                    headers: { 'Accept': 'application/json' },
+                });
+                const data = await res.json();
+                if (data.has_active_shift && data.shift) {
+                    setShift(data.shift);
+                } else {
+                    setShift(null);
+                    setStartShiftModal(true); // Prompt to start shift
+                }
+            } catch {
+                setShift(null);
+            } finally {
+                setShiftLoading(false);
+            }
+        };
+        fetchShiftStatus();
+    }, []);
 
     // Search products
     const searchProducts = useCallback(async (query: string) => {
@@ -308,6 +347,78 @@ export default function CashierIndex({
             alert(error instanceof Error ? error.message : 'Gagal membatalkan transaksi.');
         } finally {
             setConfirming(false);
+        }
+    };
+
+    // Start a new shift
+    const handleStartShift = async () => {
+        if (processing) return;
+        setProcessing(true);
+
+        const cashValue = parseMoneyToInt(openingCash);
+
+        try {
+            const res = await fetch('/shift/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
+                },
+                body: JSON.stringify({ opening_cash: cashValue }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.message || 'Gagal memulai shift');
+            }
+
+            setShift(data.shift);
+            setStartShiftModal(false);
+            setOpeningCash('');
+        } catch (error) {
+            alert(error instanceof Error ? error.message : 'Gagal memulai shift.');
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    // End the current shift
+    const handleEndShift = async () => {
+        if (processing) return;
+        setProcessing(true);
+
+        const cashValue = parseMoneyToInt(closingCash);
+
+        try {
+            const res = await fetch('/shift/end', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
+                },
+                body: JSON.stringify({ closing_cash: cashValue }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.message || 'Gagal mengakhiri shift');
+            }
+
+            // Show summary and prompt for new shift
+            alert(`Shift berhasil diakhiri.\n\nTotal Penjualan: ${formatMoney(data.summary.total_sales, currency)}\nCash: ${formatMoney(data.summary.cash_total, currency)}\nQRIS: ${formatMoney(data.summary.qris_total, currency)}\nVariance: ${formatMoney(data.summary.variance || 0, currency)}`);
+            
+            setShift(null);
+            setEndShiftModal(false);
+            setClosingCash('');
+            setStartShiftModal(true); // Prompt to start new shift
+        } catch (error) {
+            alert(error instanceof Error ? error.message : 'Gagal mengakhiri shift.');
+        } finally {
+            setProcessing(false);
         }
     };
 
@@ -951,6 +1062,113 @@ export default function CashierIndex({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Start Shift Modal */}
+            <Dialog open={startShiftModal} onOpenChange={setStartShiftModal}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <PlayCircle className="h-5 w-5 text-primary" />
+                            Mulai Shift
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <p className="text-muted-foreground">
+                            Anda harus memulai shift sebelum dapat memproses transaksi.
+                        </p>
+                        <div className="space-y-2">
+                            <Label htmlFor="opening_cash">Uang di Laci (Pembukaan)</Label>
+                            <Input
+                                id="opening_cash"
+                                placeholder="0"
+                                value={openingCash}
+                                onChange={(e) => setOpeningCash(e.target.value)}
+                                disabled={processing}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={handleStartShift} disabled={processing}>
+                            {processing ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Memulai...
+                                </>
+                            ) : (
+                                <>
+                                    <PlayCircle className="h-4 w-4 mr-2" />
+                                    Mulai Shift
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* End Shift Modal */}
+            <Dialog open={endShiftModal} onOpenChange={setEndShiftModal}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <StopCircle className="h-5 w-5 text-destructive" />
+                            Akhiri Shift
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        {shift && (
+                            <div className="bg-muted p-3 rounded-md space-y-1 text-sm">
+                                <p>Total Penjualan: <span className="font-semibold">{formatMoney(shift.total_sales || 0, currency)}</span></p>
+                                <p>Cash: {formatMoney(shift.cash_total || 0, currency)}</p>
+                                <p>QRIS: {formatMoney(shift.qris_total || 0, currency)}</p>
+                                <p>Transaksi: {shift.transaction_count || 0}</p>
+                            </div>
+                        )}
+                        <div className="space-y-2">
+                            <Label htmlFor="closing_cash">Uang di Laci (Penutupan)</Label>
+                            <Input
+                                id="closing_cash"
+                                placeholder="Hitung uang cash di laci"
+                                value={closingCash}
+                                onChange={(e) => setClosingCash(e.target.value)}
+                                disabled={processing}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEndShiftModal(false)} disabled={processing}>
+                            Batal
+                        </Button>
+                        <Button variant="destructive" onClick={handleEndShift} disabled={processing || !closingCash}>
+                            {processing ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Mengakhiri...
+                                </>
+                            ) : (
+                                <>
+                                    <StopCircle className="h-4 w-4 mr-2" />
+                                    Akhiri Shift
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Shift indicator when active */}
+            {shift && !shiftLoading && (
+                <div className="fixed bottom-4 left-4 z-50">
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setEndShiftModal(true)}
+                        className="shadow-lg"
+                    >
+                        <Clock className="h-4 w-4 mr-2" />
+                        Shift: {formatMoney(shift.total_sales || 0, currency)}
+                    </Button>
+                </div>
+            )}
         </AppLayout>
     );
 }

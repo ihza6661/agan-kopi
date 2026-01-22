@@ -14,6 +14,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\ReconciliationController;
+use App\Http\Controllers\ShiftController;
 
 // Login
 Route::middleware('guest')->group(function () {
@@ -37,6 +38,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::middleware('role:admin,cashier')->group(function () {
+        // Shifts
+        Route::get('/shift/status', [ShiftController::class, 'status'])->name('shift.status');
+        Route::post('/shift/start', [ShiftController::class, 'start'])->name('shift.start');
+        Route::post('/shift/end', [ShiftController::class, 'end'])->name('shift.end');
+        Route::get('/shift', [ShiftController::class, 'index'])->name('shift');
+        Route::get('/shift-data', [ShiftController::class, 'data'])->name('shift.data');
+
         // Kasir
         Route::get('/kasir', [CashierController::class, 'index'])->name('kasir');
         Route::get('/kasir/products', [CashierController::class, 'products'])->name('kasir.products');
@@ -47,6 +55,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/kasir/holds', [CashierController::class, 'holds'])->name('kasir.holds');
         Route::post('/kasir/holds/{transaction}/resume', [CashierController::class, 'resume'])->name('kasir.holds.resume');
         Route::delete('/kasir/holds/{transaction}', [CashierController::class, 'destroyHold'])->name('kasir.holds.destroy');
+
 
         // Transaksi
         Route::get('/transaksi/{transaction}/struk', [TransactionController::class, 'receipt'])->name('transaksi.struk');

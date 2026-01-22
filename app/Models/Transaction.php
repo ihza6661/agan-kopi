@@ -16,6 +16,7 @@ class Transaction extends Model
 
     protected $fillable = [
         'user_id',
+        'shift_id',
         'invoice_number',
         'note',
         'suspended_from_id',
@@ -71,5 +72,10 @@ class Transaction extends Model
     public function suspendedFrom(): BelongsTo
     {
         return $this->belongsTo(Transaction::class, 'suspended_from_id');
+    }
+
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class);
     }
 }

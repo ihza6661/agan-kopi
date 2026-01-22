@@ -6,6 +6,7 @@ use App\Enums\PaymentMethod;
 use App\Enums\TransactionStatus;
 use App\Models\ActivityLog;
 use App\Models\Product;
+use App\Models\Shift;
 use App\Models\Transaction;
 use App\Models\TransactionDetail;
 use App\Services\Settings\SettingsServiceInterface;
@@ -28,9 +29,15 @@ class CashierService implements CashierServiceInterface
             throw new InvalidArgumentException('Keranjang kosong.');
         }
 
+        // Require active shift
+        $shift = Shift::getActiveForUser(Auth::id());
+        if (!$shift) {
+            throw new InvalidArgumentException('Anda harus memulai shift terlebih dahulu.');
+        }
+
         $method = PaymentMethod::tryFrom($paymentMethod) ?? PaymentMethod::CASH;
 
-        return DB::transaction(function () use ($items, $method, $paidAmount, $note, $suspendedFromId) {
+        return DB::transaction(function () use ($items, $method, $paidAmount, $note, $suspendedFromId, $shift) {
             $subtotal = 0.0;
             $built = [];
 
@@ -76,6 +83,7 @@ class CashierService implements CashierServiceInterface
             // Always start as PENDING - stock mutation uses this check
             $trx = Transaction::create([
                 'user_id' => Auth::id(),
+                'shift_id' => $shift->id,
                 'invoice_number' => 'TEMP-' . Str::uuid()->toString(), // Unique temp to avoid race condition
                 'note' => $note,
                 'suspended_from_id' => $suspendedFromId,

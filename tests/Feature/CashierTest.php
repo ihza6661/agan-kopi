@@ -6,6 +6,7 @@ use App\Enums\PaymentMethod;
 use App\Enums\RoleStatus;
 use App\Enums\TransactionStatus;
 use App\Models\Product;
+use App\Models\Shift;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\ActivityLog\ActivityLoggerInterface;
@@ -39,6 +40,15 @@ class CashierTest extends TestCase
         ]);
         $this->actingAs($user);
         return $user;
+    }
+
+    private function createActiveShift(User $user): Shift
+    {
+        return Shift::create([
+            'user_id' => $user->id,
+            'started_at' => now(),
+            'opening_cash' => 0,
+        ]);
     }
 
     public function test_cashier_index_accessible_by_cashier_and_admin(): void
@@ -92,7 +102,8 @@ class CashierTest extends TestCase
 
     public function test_checkout_cash_success_and_stock_decrement(): void
     {
-        $this->actingAsCashier();
+        $user = $this->actingAsCashier();
+        $this->createActiveShift($user);
         $p = Product::factory()->create(['price' => 25.00, 'stock' => 10]);
 
         $payload = [
@@ -130,7 +141,8 @@ class CashierTest extends TestCase
 
     public function test_qris_checkout_creates_pending_transaction(): void
     {
-        $this->actingAsCashier();
+        $user = $this->actingAsCashier();
+        $this->createActiveShift($user);
         $p = Product::factory()->create(['price' => 50.00, 'stock' => 5]);
 
         $payload = [
@@ -152,7 +164,8 @@ class CashierTest extends TestCase
 
     public function test_qris_checkout_does_not_deduct_stock(): void
     {
-        $this->actingAsCashier();
+        $user = $this->actingAsCashier();
+        $this->createActiveShift($user);
         $originalStock = 10;
         $p = Product::factory()->create(['price' => 30.00, 'stock' => $originalStock]);
 
