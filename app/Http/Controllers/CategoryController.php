@@ -99,16 +99,29 @@ class CategoryController extends Controller
     {
         $name = $category->name;
         $id = $category->id;
-        $this->service->delete($category);
-        $this->logger->log('Hapus Kategori', "Menghapus kategori '{$name}'", ['category_id' => $id]);
+        
+        try {
+            $this->service->delete($category);
+            $this->logger->log('Hapus Kategori', "Menghapus kategori '{$name}'", ['category_id' => $id]);
 
-        if (request()->expectsJson()) {
-            return response()->json(['deleted' => true]);
+            if (request()->expectsJson()) {
+                return response()->json(['deleted' => true]);
+            }
+
+            return redirect()
+                ->route('kategori.index')
+                ->with('success', 'Kategori berhasil dihapus.');
+        } catch (\Exception $e) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'message' => $e->getMessage()
+                ], 422);
+            }
+
+            return redirect()
+                ->route('kategori.index')
+                ->with('error', $e->getMessage());
         }
-
-        return redirect()
-            ->route('kategori.index')
-            ->with('success', 'Kategori berhasil dihapus.');
     }
 }
 

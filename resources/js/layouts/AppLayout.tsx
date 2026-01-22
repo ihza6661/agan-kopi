@@ -3,7 +3,7 @@ import { Head, usePage } from '@inertiajs/react';
 import { Sidebar, MobileSidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { Toaster } from '@/components/ui/toaster';
+import { Toaster } from '@/components/ui/sonner';
 import type { PageProps } from '@/types/index.d';
 import { useThemeStore } from '@/stores/themeStore';
 

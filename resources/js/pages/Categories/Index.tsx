@@ -4,7 +4,6 @@ import AppLayout from '@/layouts/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/components/ui/use-toast';
 import {
     Table,
     TableBody,
@@ -33,6 +32,8 @@ import {
     ChevronRight,
     AlertTriangle,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { fetchWithCsrf } from '@/lib/csrf';
 
 interface Category {
     id: number;
@@ -54,7 +55,6 @@ export default function CategoriesIndex() {
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
-    const { toast } = useToast();
     const [pagination, setPagination] = useState({
         currentPage: 1,
         lastPage: 1,
@@ -103,39 +103,20 @@ export default function CategoriesIndex() {
 
         setDeleting(true);
         try {
-            const response = await fetch(`/kategori/${deleteModal.category.id}`, {
+            const res = await fetchWithCsrf(`/kategori/${deleteModal.category.id}`, {
                 method: 'DELETE',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
-                },
             });
 
-            const result = await response.json();
-
-            if (!response.ok) {
-                toast({
-                    variant: "destructive",
-                    title: "Gagal menghapus kategori",
-                    description: result.message || 'Terjadi kesalahan saat menghapus kategori.',
-                });
-                return;
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.message || 'Gagal menghapus kategori');
             }
 
-            toast({
-                variant: "success",
-                title: "Kategori berhasil dihapus",
-                description: `Kategori "${deleteModal.category.name}" telah dihapus.`,
-            });
-
+            toast.success('Kategori berhasil dihapus');
             setDeleteModal({ open: false, category: null });
             fetchCategories(pagination.currentPage);
         } catch (error) {
-            toast({
-                variant: "destructive",
-                title: "Gagal menghapus kategori",
-                description: 'Terjadi kesalahan. Silakan coba lagi.',
-            });
+            toast.error(error instanceof Error ? error.message : 'Gagal menghapus kategori');
         } finally {
             setDeleting(false);
         }
@@ -207,10 +188,8 @@ export default function CategoriesIndex() {
                                                 <TableCell className="font-medium">
                                                     {cat.name}
                                                 </TableCell>
-                                                <TableCell className="max-w-md">
-                                                    {cat.description ? (
-                                                        <span className="break-words">{cat.description}</span>
-                                                    ) : (
+                                                <TableCell>
+                                                    {cat.description || (
                                                         <span className="text-muted-foreground">-</span>
                                                     )}
                                                 </TableCell>
@@ -289,7 +268,7 @@ export default function CategoriesIndex() {
                             Hapus Kategori
                         </DialogTitle>
                         <DialogDescription>
-                            Apakah Anda yakin ingin menghapus kategori ini? Produk dalam kategori ini akan menjadi tanpa kategori.
+                            Apakah Anda yakin ingin menghapus kategori ini? Kategori yang masih memiliki produk tidak dapat dihapus.
                         </DialogDescription>
                     </DialogHeader>
                     {deleteModal.category && (

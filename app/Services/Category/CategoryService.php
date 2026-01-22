@@ -26,6 +26,13 @@ class CategoryService implements CategoryServiceInterface
 
     public function delete(Category $category): void
     {
+        // Check if category has products
+        $productsCount = $category->products()->count();
+        
+        if ($productsCount > 0) {
+            throw new \Exception("Kategori tidak dapat dihapus karena masih memiliki {$productsCount} produk. Silakan hapus atau pindahkan produk terlebih dahulu.");
+        }
+        
         $category->delete();
     }
 

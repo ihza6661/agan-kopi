@@ -5,7 +5,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/components/ui/use-toast';
 import {
     Table,
     TableBody,
@@ -36,6 +35,8 @@ import {
     Shield,
     ShoppingCart,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { fetchWithCsrf } from '@/lib/csrf';
 
 interface User {
     id: number;
@@ -57,7 +58,6 @@ export default function UsersIndex() {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
-    const { toast } = useToast();
     const [pagination, setPagination] = useState({
         currentPage: 1,
         lastPage: 1,
@@ -106,39 +106,20 @@ export default function UsersIndex() {
 
         setDeleting(true);
         try {
-            const res = await fetch(`/pengguna/${deleteModal.user.id}`, {
+            const res = await fetchWithCsrf(`/pengguna/${deleteModal.user.id}`, {
                 method: 'DELETE',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
-                },
             });
-            
-            const data = await res.json();
             
             if (!res.ok) {
-                toast({
-                    variant: "destructive",
-                    title: "Gagal menghapus pengguna",
-                    description: data.message || 'Terjadi kesalahan saat menghapus pengguna.',
-                });
-                return;
+                const data = await res.json();
+                throw new Error(data.message || 'Gagal menghapus pengguna');
             }
             
-            toast({
-                variant: "success",
-                title: "Pengguna berhasil dihapus",
-                description: `Pengguna "${deleteModal.user.name}" telah dihapus.`,
-            });
-            
+            toast.success('Pengguna berhasil dihapus');
             setDeleteModal({ open: false, user: null });
             fetchUsers(pagination.currentPage);
         } catch (error) {
-            toast({
-                variant: "destructive",
-                title: "Gagal menghapus pengguna",
-                description: 'Terjadi kesalahan. Silakan coba lagi.',
-            });
+            toast.error(error instanceof Error ? error.message : 'Gagal menghapus pengguna');
         } finally {
             setDeleting(false);
         }
@@ -269,8 +250,8 @@ export default function UsersIndex() {
 
                     {/* Pagination */}
                     {!loading && users.length > 0 && (
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 py-3 border-t">
-                            <div className="text-sm text-muted-foreground text-center sm:text-left">
+                        <div className="flex items-center justify-between px-4 py-3 border-t">
+                            <div className="text-sm text-muted-foreground">
                                 Menampilkan {((pagination.currentPage - 1) * pagination.perPage) + 1} -{' '}
                                 {Math.min(pagination.currentPage * pagination.perPage, pagination.total)} dari{' '}
                                 {pagination.total} pengguna
