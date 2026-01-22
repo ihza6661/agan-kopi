@@ -41,7 +41,7 @@ export default function Login({ appStoreName }: LoginProps) {
                     <CardHeader className="text-center pb-4">
                         <div className="flex items-center justify-center gap-3 mb-4">
                             <img
-                                src="/assets/images/logo.webp"
+                                src="/assets/images/logo.jpg"
                                 alt="Logo"
                                 className="w-14 h-14 rounded-full"
                             />

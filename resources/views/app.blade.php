@@ -12,7 +12,7 @@
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700" rel="stylesheet" />
 
     <!-- Favicon -->
-    <link rel="icon" type="image/webp" href="{{ asset('assets/images/logo.webp') }}" />
+    <link rel="icon" type="image/jpg" href="{{ asset('assets/images/logo.jpg') }}" />
 
     @viteReactRefresh
     @vite(['resources/js/app.tsx'])
