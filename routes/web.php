@@ -10,11 +10,10 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\CashierController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\MidtransController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\TransactionController;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use App\Http\Controllers\ReconciliationController;
 
 // Login
 Route::middleware('guest')->group(function () {
@@ -26,11 +25,6 @@ Route::middleware('guest')->group(function () {
 Route::post('/logout', [AuthController::class, 'logout'])
     ->middleware('auth')
     ->name('logout');
-
-// Midtrans webhook
-Route::post('/midtrans/notification', [MidtransController::class, 'notification'])
-    ->middleware(['throttle:30,1'])
-    ->withoutMiddleware([VerifyCsrfToken::class]);
 
 Route::middleware('auth')->group(function () {
     // Notifications
@@ -47,6 +41,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/kasir', [CashierController::class, 'index'])->name('kasir');
         Route::get('/kasir/products', [CashierController::class, 'products'])->name('kasir.products');
         Route::post('/kasir/checkout', [CashierController::class, 'checkout'])->name('kasir.checkout');
+        Route::post('/kasir/checkout/{transaction}/confirm-qris', [CashierController::class, 'confirmQris'])->name('kasir.confirm-qris');
+        Route::post('/kasir/checkout/{transaction}/cancel-qris', [CashierController::class, 'cancelQris'])->name('kasir.cancel-qris');
         Route::post('/kasir/hold', [CashierController::class, 'hold'])->name('kasir.hold');
         Route::get('/kasir/holds', [CashierController::class, 'holds'])->name('kasir.holds');
         Route::post('/kasir/holds/{transaction}/resume', [CashierController::class, 'resume'])->name('kasir.holds.resume');
@@ -62,6 +58,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/pembayaran/{transaction}', [PaymentController::class, 'show'])->name('pembayaran.show');
         Route::get('/pembayaran/{transaction}/status', [PaymentController::class, 'status'])->name('pembayaran.status');
         Route::get('/pembayaran/{transaction}/complete', [PaymentController::class, 'complete'])->name('pembayaran.complete');
+
+        // Rekonsiliasi
+        Route::get('/rekonsiliasi', [ReconciliationController::class, 'index'])->name('rekonsiliasi');
+        Route::get('/rekonsiliasi-data', [ReconciliationController::class, 'data'])->name('rekonsiliasi.data');
     });
 
     Route::middleware('role:admin')->group(function () {

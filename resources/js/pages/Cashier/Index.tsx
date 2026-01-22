@@ -34,6 +34,9 @@ import {
     Banknote,
     Loader2,
     Printer,
+    QrCode,
+    Clock,
+    XCircle,
 } from 'lucide-react';
 import { useCartStore } from '@/stores/cartStore';
 import { formatMoney, formatNumber, parseMoneyToInt } from '@/lib/utils';
@@ -66,6 +69,14 @@ export default function CashierIndex({
     const [processing, setProcessing] = useState(false);
     const [holdsOpen, setHoldsOpen] = useState(false);
     const [holds, setHolds] = useState<HoldTransaction[]>([]);
+    const [paymentMethod, setPaymentMethod] = useState<'cash' | 'qris'>('cash');
+    const [qrisPendingModal, setQrisPendingModal] = useState<{
+        open: boolean;
+        transactionId?: number;
+        invoiceNumber?: string;
+        total?: number;
+    }>({ open: false });
+    const [confirming, setConfirming] = useState(false);
     const [successModal, setSuccessModal] = useState<{
         open: boolean;
         invoiceNumber?: string;
@@ -139,10 +150,11 @@ export default function CashierIndex({
     const handleCheckout = async () => {
         if (items.length === 0) return;
 
-        const total = getTotal();
+        const totalAmount = getTotal();
         const paidInt = parseMoneyToInt(paidAmount);
 
-        if (paidInt < total) {
+        // For cash, require sufficient payment
+        if (paymentMethod === 'cash' && paidInt < totalAmount) {
             alert('Jumlah bayar kurang dari total.');
             return;
         }
@@ -151,9 +163,9 @@ export default function CashierIndex({
 
         try {
             const payload = {
-                payment_method: 'cash',
+                payment_method: paymentMethod,
                 items: items.map(({ product_id, qty }) => ({ product_id, qty })),
-                paid_amount: paidInt,
+                paid_amount: paymentMethod === 'cash' ? paidInt : 0,
                 note,
                 suspended_from_id: suspendedFromId,
             };
@@ -183,19 +195,119 @@ export default function CashierIndex({
                 throw new Error(data.message || 'Checkout failed');
             }
 
-            // Cash payment success
+            // Clear cart
             clearCart();
             setPaidAmount('');
-            setSuccessModal({
-                open: true,
-                invoiceNumber: data.invoice,
-                transactionId: data.transaction_id,
-                method: 'cash',
-            });
+
+            if (paymentMethod === 'qris') {
+                // QRIS: show pending confirmation modal
+                setQrisPendingModal({
+                    open: true,
+                    transactionId: data.transaction_id,
+                    invoiceNumber: data.invoice,
+                    total: totalAmount,
+                });
+            } else {
+                // Cash: show success immediately
+                setSuccessModal({
+                    open: true,
+                    invoiceNumber: data.invoice,
+                    transactionId: data.transaction_id,
+                    method: 'cash',
+                });
+            }
         } catch (error) {
             alert(error instanceof Error ? error.message : 'Terjadi kesalahan.');
         } finally {
             setProcessing(false);
+        }
+    };
+
+    // Confirm QRIS payment (manual confirmation by cashier)
+    const handleConfirmQris = async () => {
+        if (!qrisPendingModal.transactionId) return;
+        if (confirming) return; // Prevent double-click
+
+        setConfirming(true);
+
+        try {
+            const res = await fetch(`/kasir/checkout/${qrisPendingModal.transactionId}/confirm-qris`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            });
+
+            if (res.status === 419) {
+                alert('Sesi Anda telah kedaluwarsa. Halaman akan dimuat ulang.');
+                window.location.reload();
+                return;
+            }
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.message || 'Konfirmasi gagal');
+            }
+
+            // Close pending modal and show success
+            setQrisPendingModal({ open: false });
+            setSuccessModal({
+                open: true,
+                invoiceNumber: data.invoice,
+                transactionId: data.transaction_id,
+                method: 'qris',
+            });
+        } catch (error) {
+            alert(error instanceof Error ? error.message : 'Gagal mengonfirmasi pembayaran.');
+        } finally {
+            setConfirming(false);
+        }
+    };
+
+    // Cancel pending QRIS payment
+    const handleCancelQris = async () => {
+        if (!qrisPendingModal.transactionId) return;
+        if (confirming) return;
+
+        const confirmed = window.confirm('Apakah Anda yakin ingin membatalkan transaksi QRIS ini?');
+        if (!confirmed) return;
+
+        setConfirming(true);
+
+        try {
+            const res = await fetch(`/kasir/checkout/${qrisPendingModal.transactionId}/cancel-qris`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            });
+
+            if (res.status === 419) {
+                alert('Sesi Anda telah kedaluwarsa. Halaman akan dimuat ulang.');
+                window.location.reload();
+                return;
+            }
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.message || 'Pembatalan gagal');
+            }
+
+            // Close pending modal
+            setQrisPendingModal({ open: false });
+            alert('Transaksi QRIS telah dibatalkan.');
+        } catch (error) {
+            alert(error instanceof Error ? error.message : 'Gagal membatalkan transaksi.');
+        } finally {
+            setConfirming(false);
         }
     };
 
@@ -322,7 +434,8 @@ export default function CashierIndex({
     const total = getTotal();
     const paidInt = parseMoneyToInt(paidAmount);
     const change = Math.max(0, paidInt - total);
-    const canCheckout = items.length > 0 && paidInt >= total;
+    // For cash: need sufficient payment. For QRIS: just need items
+    const canCheckout = items.length > 0 && (paymentMethod === 'qris' || paidInt >= total);
 
     return (
         <AppLayout title="Kasir">
@@ -567,37 +680,55 @@ export default function CashierIndex({
                                     <Label>Metode Pembayaran</Label>
                                     <div className="flex gap-2 mt-2">
                                         <Button
-                                            variant="default"
+                                            variant={paymentMethod === 'cash' ? 'default' : 'outline'}
                                             className="flex-1"
-                                            disabled
+                                            onClick={() => setPaymentMethod('cash')}
                                         >
                                             <Banknote className="h-4 w-4 mr-2" />
                                             Tunai
                                         </Button>
+                                        <Button
+                                            variant={paymentMethod === 'qris' ? 'default' : 'outline'}
+                                            className="flex-1"
+                                            onClick={() => setPaymentMethod('qris')}
+                                        >
+                                            <QrCode className="h-4 w-4 mr-2" />
+                                            QRIS
+                                        </Button>
                                     </div>
                                 </div>
 
-                                {/* Cash payment input */}
-                                <div>
-                                    <Label htmlFor="paid_amount">Jumlah Bayar ({currency})</Label>
-                                    <Input
-                                        id="paid_amount"
-                                        type="text"
-                                        inputMode="numeric"
-                                        placeholder="Rp 0"
-                                        value={paidAmount}
-                                        onChange={(e) => {
-                                            const raw = parseMoneyToInt(e.target.value);
-                                            setPaidAmount(formatMoney(raw, currency));
-                                        }}
-                                        className="mt-1"
-                                    />
-                                    {paidInt > 0 && (
-                                        <div className="mt-2 font-semibold text-success">
-                                            Kembalian: {formatMoney(change, currency)}
-                                        </div>
-                                    )}
-                                </div>
+                                {/* Cash payment input - only show for cash */}
+                                {paymentMethod === 'cash' && (
+                                    <div>
+                                        <Label htmlFor="paid_amount">Jumlah Bayar ({currency})</Label>
+                                        <Input
+                                            id="paid_amount"
+                                            type="text"
+                                            inputMode="numeric"
+                                            placeholder="Rp 0"
+                                            value={paidAmount}
+                                            onChange={(e) => {
+                                                const raw = parseMoneyToInt(e.target.value);
+                                                setPaidAmount(formatMoney(raw, currency));
+                                            }}
+                                            className="mt-1"
+                                        />
+                                        {paidInt > 0 && (
+                                            <div className="mt-2 font-semibold text-success">
+                                                Kembalian: {formatMoney(change, currency)}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* QRIS info */}
+                                {paymentMethod === 'qris' && (
+                                    <div className="p-3 bg-muted rounded-lg text-sm text-muted-foreground">
+                                        <QrCode className="h-4 w-4 inline mr-2" />
+                                        Pelanggan akan membayar via QRIS. Setelah checkout, konfirmasi manual diperlukan setelah memverifikasi pembayaran.
+                                    </div>
+                                )}
 
                                 {/* Note */}
                                 <div>
@@ -700,6 +831,84 @@ export default function CashierIndex({
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setHoldsOpen(false)}>
                             Tutup
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* QRIS Pending Confirmation Modal */}
+            <Dialog 
+                open={qrisPendingModal.open} 
+                onOpenChange={(open) => {
+                    // Don't allow closing while confirming
+                    if (!confirming) {
+                        setQrisPendingModal({ ...qrisPendingModal, open });
+                    }
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Clock className="h-5 w-5 text-warning animate-pulse" />
+                            Menunggu Konfirmasi QRIS
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="p-4 bg-warning/10 border border-warning/30 rounded-lg">
+                            <div className="flex items-center gap-2 mb-2">
+                                <QrCode className="h-5 w-5 text-warning" />
+                                <span className="font-semibold text-warning">Pembayaran QRIS Pending</span>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                                Verifikasi pembayaran di aplikasi bank/e-wallet Anda, lalu klik tombol konfirmasi di bawah.
+                            </p>
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-sm text-muted-foreground">
+                                No. Transaksi: <span className="font-semibold">{qrisPendingModal.invoiceNumber}</span>
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                                Total: <span className="font-semibold">{formatMoney(qrisPendingModal.total || 0, currency)}</span>
+                            </p>
+                        </div>
+                    </div>
+                    <DialogFooter className="flex-col sm:flex-row gap-2">
+                        <div className="flex gap-2 w-full sm:w-auto">
+                            <Button 
+                                variant="outline" 
+                                onClick={() => setQrisPendingModal({ open: false })}
+                                disabled={confirming}
+                                className="flex-1 sm:flex-none"
+                            >
+                                Tutup
+                            </Button>
+                            <Button 
+                                variant="destructive"
+                                onClick={handleCancelQris}
+                                disabled={confirming}
+                                className="flex-1 sm:flex-none"
+                            >
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Batalkan
+                            </Button>
+                        </div>
+                        <Button 
+                            variant="success"
+                            onClick={handleConfirmQris}
+                            disabled={confirming}
+                            className="w-full sm:w-auto"
+                        >
+                            {confirming ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Memproses...
+                                </>
+                            ) : (
+                                <>
+                                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                                    Konfirmasi Pembayaran
+                                </>
+                            )}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

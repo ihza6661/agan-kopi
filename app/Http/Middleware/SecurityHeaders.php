@@ -19,10 +19,7 @@ class SecurityHeaders
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', "geolocation=(), microphone=(), camera=()");
 
-        // Content Security Policy tuned for app needs (Midtrans Snap + QR API)
-        $isProd = (bool) config('midtrans.is_production', false);
-        $midtrans = $isProd ? 'https://app.midtrans.com' : 'https://app.sandbox.midtrans.com';
-        
+        // Content Security Policy
         // Allow Vite dev server in development (ports 5173-5180, localhost and IPv6)
         $viteDevServer = '';
         if (app()->environment('local')) {
@@ -42,18 +39,11 @@ class SecurityHeaders
         $csp = [
             "default-src 'self'",
             "img-src 'self' data: https://api.qrserver.com",
-            // Allow Midtrans Snap script; keep inline for Blade stacks and Bootstrap inline styles
-            // In development, also allow Vite dev server
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' {$midtrans} {$viteDevServer}",
-            // Allow Google Fonts and Bunny Fonts stylesheets
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' {$viteDevServer}",
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.bunny.net",
-            // Allow font files from Google Fonts and Bunny Fonts
             "font-src 'self' https://fonts.gstatic.com https://fonts.bunny.net data:",
-            // Allow XHR/fetch to Midtrans and Vite dev server
-            "connect-src 'self' {$midtrans} {$viteDevServer}",
-            // Allow embedding Midtrans Snap iframe
-            "frame-src 'self' {$midtrans}",
-            // Do not allow our pages to be framed by other sites
+            "connect-src 'self' {$viteDevServer}",
+            "frame-src 'self'",
             "frame-ancestors 'none'",
         ];
 

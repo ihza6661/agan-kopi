@@ -119,10 +119,12 @@ class PaymentController extends Controller
             abort(404);
         }
 
-        $payment = Payment::where('transaction_id', $transaction->id)->latest()->firstOrFail();
-        $status = strtolower((string) ($payment->status?->value ?? $payment->status ?? 'pending'));
-        if ($status !== 'pending') {
-            abort(404);
+        // For manual QRIS, we just display transaction info - no Payment model needed
+        $status = strtolower((string) ($transaction->status?->value ?? $transaction->status ?? 'pending'));
+        
+        // If already paid, redirect to complete
+        if ($status === 'paid') {
+            return redirect()->route('kasir');
         }
 
         $transaction->loadMissing('user:id,name');
@@ -135,46 +137,25 @@ class PaymentController extends Controller
                     ? $transaction->payment_method
                     : ($transaction->payment_method?->value ?? ''),
                 'total' => (float) $transaction->total,
+                'status' => $status,
                 'user' => $transaction->user ? [
                     'id' => $transaction->user->id,
                     'name' => $transaction->user->name,
                 ] : null,
             ],
-            'payment' => [
-                'id' => $payment->id,
-                'method' => is_string($payment->method) ? $payment->method : ($payment->method?->value ?? ''),
-                'provider' => $payment->provider,
-                'status' => $status,
-                'amount' => (float) $payment->amount,
-                'created_at' => $payment->created_at?->toIso8601String(),
-                'paid_at' => $payment->paid_at?->toIso8601String(),
-                'snap_token' => $payment->metadata['snap_token'] ?? null,
-                'qr_url' => $payment->qr_url ?? null,
-                'qr_string' => $payment->qr_string ?? null,
-            ],
             'currency' => $this->settings->currency(),
-            'midtrans_client_key' => config('midtrans.client_key'),
-            'midtrans_is_production' => config('midtrans.is_production'),
         ]);
     }
 
     public function status(Transaction $transaction): JsonResponse
     {
-        $transaction->loadMissing('latestPayment');
-        $pay = $transaction->latestPayment;
-
-        $status = $pay?->status?->value
-            ?? $transaction->status?->value
-            ?? 'pending';
+        $status = strtolower((string) ($transaction->status?->value ?? $transaction->status ?? 'pending'));
 
         return response()->json([
             'transaction_id' => $transaction->id,
             'invoice' => $transaction->invoice_number,
             'status' => $status,
-            'paid' => in_array($status, [
-                PaymentStatus::SETTLEMENT->value,
-                TransactionStatus::PAID->value,
-            ], true),
+            'paid' => $status === 'paid',
         ]);
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PaymentMethod;
 use App\Enums\RoleStatus;
 use App\Http\Requests\Cashier\CheckoutRequest;
 use App\Http\Requests\Cashier\HoldRequest;
@@ -11,8 +12,11 @@ use App\Models\Product;
 use App\Services\Cashier\CashierServiceInterface;
 use App\Services\Settings\SettingsServiceInterface;
 use App\Services\ActivityLog\ActivityLoggerInterface;
+use App\Services\Stock\StockMutationService;
+use App\Services\Transaction\TransactionStateMachine;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -22,7 +26,8 @@ class CashierController extends Controller
     public function __construct(
         private readonly CashierServiceInterface $cashier,
         private readonly SettingsServiceInterface $settings,
-        private readonly ActivityLoggerInterface $logger
+        private readonly ActivityLoggerInterface $logger,
+        private readonly StockMutationService $stockService
     ) {
         $this->middleware(function ($request, $next) {
             if (!Auth::check() || !in_array(Auth::user()->role, [RoleStatus::ADMIN->value, RoleStatus::CASHIER->value], true)) {
@@ -38,8 +43,6 @@ class CashierController extends Controller
             'currency' => $this->settings->currency(),
             'discount_percent' => $this->settings->discountPercent(),
             'tax_percent' => $this->settings->taxPercent(),
-            'midtrans_client_key' => config('midtrans.client_key'),
-            'midtrans_is_production' => config('midtrans.is_production'),
         ]);
     }
 
@@ -92,15 +95,8 @@ class CashierController extends Controller
                 $response = [
                     'transaction_id' => $order->id,
                     'invoice' => $order->invoice_number,
+                    'status' => strtolower($order->status->value),
                 ];
-
-                // Add QRIS-specific data if applicable
-                if ($data['payment_method'] === 'qris') {
-                    $order->loadMissing('latestPayment');
-                    $payment = $order->latestPayment;
-                    $response['snap_token'] = $payment->metadata['snap_token'] ?? null;
-                    $response['redirect_url'] = $payment->metadata['redirect_url'] ?? null;
-                }
 
                 return response()->json($response);
             }
@@ -182,5 +178,131 @@ class CashierController extends Controller
         abort_unless($transaction->status === TransactionStatus::SUSPENDED, 400, 'Transaksi bukan status ditunda.');
         $transaction->delete();
         return response()->json(['deleted' => true]);
+    }
+
+    /**
+     * Manually confirm a QRIS payment.
+     * Only QRIS transactions with status PENDING can be confirmed.
+     * Deducts stock atomically and marks transaction as PAID.
+     */
+    public function confirmQris(Transaction $transaction): JsonResponse
+    {
+        // Validate: must be QRIS and PENDING
+        abort_unless(
+            $transaction->payment_method === \App\Enums\PaymentMethod::QRIS,
+            400,
+            'Transaksi bukan metode QRIS.'
+        );
+        abort_unless(
+            $transaction->status === TransactionStatus::PENDING,
+            400,
+            'Transaksi tidak dalam status menunggu konfirmasi.'
+        );
+
+        // Check if already confirmed (double-click protection)
+        if ($transaction->confirmed_at !== null) {
+            return response()->json([
+                'message' => 'Transaksi sudah dikonfirmasi sebelumnya.',
+                'transaction_id' => $transaction->id,
+                'invoice' => $transaction->invoice_number,
+                'status' => $transaction->status->value,
+            ], 409); // Conflict
+        }
+
+        try {
+            DB::transaction(function () use ($transaction) {
+                // Deduct stock via centralized service
+                $this->stockService->commitTransaction($transaction);
+
+                // Transition state via StateMachine
+                TransactionStateMachine::transition($transaction, TransactionStatus::PAID);
+
+                // Mark as PAID and record confirmation
+                $transaction->update([
+                    'status' => TransactionStatus::PAID,
+                    'amount_paid' => $transaction->total,
+                    'change' => 0,
+                    'confirmed_by' => Auth::id(),
+                    'confirmed_at' => now(),
+                ]);
+
+                // Clean up suspended transaction if this was resumed from one
+                if ($transaction->suspended_from_id) {
+                    $original = Transaction::where('id', $transaction->suspended_from_id)
+                        ->where('status', TransactionStatus::SUSPENDED)
+                        ->first();
+                    if ($original) {
+                        $original->delete();
+                    }
+                }
+
+                // Log the confirmation
+                $this->logger->log('Konfirmasi QRIS', 'Pembayaran QRIS dikonfirmasi', [
+                    'transaction_id' => $transaction->id,
+                    'invoice' => $transaction->invoice_number,
+                    'total' => $transaction->total,
+                    'confirmed_by' => Auth::id(),
+                ]);
+            });
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('QRIS confirmation failed', [
+                'transaction_id' => $transaction->id,
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json(['message' => 'Gagal mengonfirmasi pembayaran.'], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'transaction_id' => $transaction->id,
+            'invoice' => $transaction->invoice_number,
+            'status' => 'paid',
+        ]);
+    }
+
+    /**
+     * Cancel a pending QRIS payment.
+     * PENDING → CANCELED, no stock changes (none were made).
+     */
+    public function cancelQris(Transaction $transaction): JsonResponse
+    {
+        abort_unless(
+            $transaction->payment_method === PaymentMethod::QRIS,
+            400,
+            'Transaksi bukan metode QRIS.'
+        );
+        abort_unless(
+            $transaction->status === TransactionStatus::PENDING,
+            400,
+            'Hanya transaksi pending yang dapat dibatalkan.'
+        );
+
+        try {
+            DB::transaction(function () use ($transaction) {
+                // Transition state via StateMachine
+                TransactionStateMachine::transition($transaction, TransactionStatus::CANCELED);
+
+                $transaction->update([
+                    'status' => TransactionStatus::CANCELED,
+                ]);
+
+                $this->logger->log('Batalkan QRIS', 'Pembayaran QRIS dibatalkan', [
+                    'transaction_id' => $transaction->id,
+                    'invoice' => $transaction->invoice_number,
+                    'canceled_by' => Auth::id(),
+                ]);
+            });
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'transaction_id' => $transaction->id,
+            'invoice' => $transaction->invoice_number,
+            'status' => 'canceled',
+        ]);
     }
 }

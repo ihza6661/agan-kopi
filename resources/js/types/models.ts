@@ -66,10 +66,7 @@ export interface Payment {
     method: 'cash' | 'qris';
     amount: number;
     paid_at: string | null;
-    status: 'pending' | 'settlement' | 'expire' | 'cancel' | 'deny' | 'failure';
-    snap_token: string | null;
-    midtrans_order_id: string | null;
-    midtrans_transaction_id: string | null;
+    status: 'pending' | 'paid' | 'canceled';
     created_at: string;
     updated_at: string;
 }

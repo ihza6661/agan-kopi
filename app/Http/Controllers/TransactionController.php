@@ -137,6 +137,13 @@ class TransactionController extends Controller
 
     public function receipt(Transaction $transaction)
     {
+        // Guard: only allow printing receipts for PAID transactions
+        abort_unless(
+            $transaction->status === TransactionStatus::PAID,
+            403,
+            'Struk hanya dapat dicetak untuk transaksi yang sudah dibayar.'
+        );
+
         $transaction->loadMissing(['details.product', 'user']);
 
         return view('transactions.receipt', [

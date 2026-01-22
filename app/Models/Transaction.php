@@ -27,6 +27,8 @@ class Transaction extends Model
         'change',
         'payment_method',
         'status',
+        'confirmed_by',
+        'confirmed_at',
     ];
 
     protected $casts = [
@@ -38,6 +40,7 @@ class Transaction extends Model
         'change'          => 'decimal:2',
         'payment_method'  => PaymentMethod::class,
         'status'          => TransactionStatus::class,
+        'confirmed_at'    => 'datetime',
     ];
 
     public function payments(): HasMany
@@ -58,6 +61,11 @@ class Transaction extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function confirmedByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'confirmed_by');
     }
 
     public function suspendedFrom(): BelongsTo

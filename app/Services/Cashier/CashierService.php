@@ -9,17 +9,17 @@ use App\Models\Product;
 use App\Models\Transaction;
 use App\Models\TransactionDetail;
 use App\Services\Settings\SettingsServiceInterface;
-use App\Services\Payments\MidtransServiceInterface;
-use App\Services\Product\ProductAlertService;
+use App\Services\Stock\StockMutationService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 class CashierService implements CashierServiceInterface
 {
     public function __construct(
         private readonly SettingsServiceInterface $settings,
-        private readonly MidtransServiceInterface $midtrans,
+        private readonly StockMutationService $stockService,
     ) {}
 
     public function checkout(array $items, string $paymentMethod, float $paidAmount = 0, ?string $note = null, ?int $suspendedFromId = null): Transaction
@@ -64,55 +64,59 @@ class CashierService implements CashierServiceInterface
             $taxAmount = $afterDiscount * ($taxPercent / 100);
             $total = $afterDiscount + $taxAmount;
 
+            // Cash requires paid amount >= total
             if ($method === PaymentMethod::CASH && $paidAmount < $total) {
                 throw new InvalidArgumentException('Nominal bayar kurang dari total.');
             }
 
+            // For QRIS: status = PENDING, no stock deduction yet
+            // For CASH: create as PENDING, deduct stock, then mark PAID
+            $isCash = $method === PaymentMethod::CASH;
+
+            // Always start as PENDING - stock mutation uses this check
             $trx = Transaction::create([
                 'user_id' => Auth::id(),
-                'invoice_number' => 'TEMP',
+                'invoice_number' => 'TEMP-' . Str::uuid()->toString(), // Unique temp to avoid race condition
                 'note' => $note,
                 'suspended_from_id' => $suspendedFromId,
                 'subtotal' => $subtotal,
                 'discount' => $discountAmount,
                 'tax' => $taxAmount,
                 'total' => $total,
-                'amount_paid' => $method === PaymentMethod::CASH ? $paidAmount : 0,
-                'change' => $method === PaymentMethod::CASH ? max(0, $paidAmount - $total) : 0,
+                'amount_paid' => $isCash ? $paidAmount : 0,
+                'change' => $isCash ? max(0, $paidAmount - $total) : 0,
                 'payment_method' => $method,
-                'status' => $method === PaymentMethod::CASH ? TransactionStatus::PAID : TransactionStatus::PENDING,
+                'status' => TransactionStatus::PENDING, // Start as PENDING
             ]);
 
             $format = $this->settings->receiptNumberFormat();
             $invoice = $this->generateInvoiceNumber($trx->id, $format);
             $trx->update(['invoice_number' => $invoice]);
 
+            // Create transaction details
             foreach ($built as $b) {
                 TransactionDetail::create([
                     'transaction_id' => $trx->id,
                     ...$b,
                 ]);
-                Product::whereKey($b['product_id'])->decrement('stock', (int) $b['quantity']);
+            }
 
-                $p = Product::find($b['product_id']);
-                if ($p) {
-                    app(ProductAlertService::class)->checkAndNotifyForProduct($p, 7);
-                }
+            // For CASH: deduct stock and mark as PAID immediately
+            if ($isCash) {
+                $this->stockService->commitTransaction($trx);
+                $trx->update(['status' => TransactionStatus::PAID]);
             }
 
             ActivityLog::create([
                 'user_id' => Auth::id(),
                 'activity' => 'checkout',
-                'description' => 'Transaksi kasir #' . $trx->invoice_number,
+                'description' => 'Transaksi kasir #' . $trx->invoice_number . ' (' . strtoupper($method->value) . ')',
                 'ip_address' => request()->ip(),
                 'user_agent' => request()->userAgent(),
             ]);
 
-            if ($method === PaymentMethod::QRIS) {
-                $this->midtrans->createSnapTransaction($trx);
-            }
-
-            if ($suspendedFromId && $method === PaymentMethod::CASH) {
+            // Clean up suspended transaction if this was resumed (only for CASH immediate completion)
+            if ($suspendedFromId && $isCash) {
                 $original = Transaction::where('id', $suspendedFromId)
                     ->where('status', TransactionStatus::SUSPENDED)
                     ->first();
