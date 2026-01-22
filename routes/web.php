@@ -71,6 +71,7 @@ Route::middleware('auth')->group(function () {
         // Rekonsiliasi
         Route::get('/rekonsiliasi', [ReconciliationController::class, 'index'])->name('rekonsiliasi');
         Route::get('/rekonsiliasi-data', [ReconciliationController::class, 'data'])->name('rekonsiliasi.data');
+        Route::get('/rekonsiliasi-shifts', [ReconciliationController::class, 'shifts'])->name('rekonsiliasi.shifts');
     });
 
     Route::middleware('role:admin')->group(function () {

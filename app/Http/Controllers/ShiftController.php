@@ -174,12 +174,16 @@ class ShiftController extends Controller
     {
         $isAdmin = Auth::user()->role === RoleStatus::ADMIN->value;
         $perPage = max(1, min(50, (int) $request->input('per_page', 15)));
+        $from = $request->input('from');
+        $to = $request->input('to');
 
         $query = Shift::query()
             ->with('user:id,name')
             ->when(!$isAdmin, function ($q) {
                 $q->where('user_id', Auth::id());
             })
+            ->when($from, fn($q) => $q->whereDate('started_at', '>=', $from))
+            ->when($to, fn($q) => $q->whereDate('started_at', '<=', $to))
             ->orderByDesc('started_at');
 
         $paginated = $query->paginate($perPage);

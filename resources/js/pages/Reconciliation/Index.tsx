@@ -6,6 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
     Table,
     TableBody,
     TableCell,
@@ -13,11 +20,31 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Banknote, QrCode, Clock, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Banknote, QrCode, Clock, AlertTriangle, RefreshCw, User } from 'lucide-react';
 import { formatMoney } from '@/lib/utils';
 
 interface Props {
     currency: string;
+}
+
+interface ShiftOption {
+    id: number;
+    user_name: string;
+    started_at: string;
+    ended_at: string | null;
+    is_active: boolean;
+    total_sales: number;
+}
+
+interface ShiftInfo {
+    id: number;
+    user_name: string;
+    started_at: string;
+    ended_at: string | null;
+    opening_cash: number;
+    closing_cash: number | null;
+    expected_cash: number;
+    variance: number | null;
 }
 
 interface PendingTransaction {
@@ -31,6 +58,8 @@ interface PendingTransaction {
 
 interface ReconciliationData {
     date: string;
+    shift_id: number | null;
+    shift: ShiftInfo | null;
     summary: {
         cash_total: number;
         qris_total: number;
@@ -45,13 +74,42 @@ interface ReconciliationData {
 
 export default function ReconciliationIndex({ currency }: Props) {
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [shiftId, setShiftId] = useState<string>('all');
+    const [shifts, setShifts] = useState<ShiftOption[]>([]);
     const [data, setData] = useState<ReconciliationData | null>(null);
     const [loading, setLoading] = useState(false);
 
+    // Fetch available shifts for the selected date
+    const fetchShifts = async () => {
+        try {
+            const res = await fetch(`/rekonsiliasi-shifts?date=${date}`, {
+                headers: { 'Accept': 'application/json' },
+            });
+            const json = await res.json();
+            setShifts(json.shifts || []);
+            
+            // Default to active shift if available
+            if (json.active_shift_id) {
+                setShiftId(String(json.active_shift_id));
+            } else if (json.shifts?.length > 0) {
+                setShiftId(String(json.shifts[0].id));
+            } else {
+                setShiftId('all');
+            }
+        } catch {
+            setShifts([]);
+        }
+    };
+
+    // Fetch reconciliation data
     const fetchData = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`/rekonsiliasi-data?date=${date}`, {
+            const params = new URLSearchParams({ date });
+            if (shiftId !== 'all') {
+                params.append('shift_id', shiftId);
+            }
+            const res = await fetch(`/rekonsiliasi-data?${params}`, {
                 headers: { 'Accept': 'application/json' },
             });
             const json = await res.json();
@@ -64,8 +122,12 @@ export default function ReconciliationIndex({ currency }: Props) {
     };
 
     useEffect(() => {
-        fetchData();
+        fetchShifts();
     }, [date]);
+
+    useEffect(() => {
+        fetchData();
+    }, [date, shiftId]);
 
     return (
         <AppLayout title="Rekonsiliasi">
@@ -73,10 +135,10 @@ export default function ReconciliationIndex({ currency }: Props) {
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold">Rekonsiliasi Harian</h1>
-                        <p className="text-muted-foreground">Ringkasan transaksi harian untuk rekonsiliasi kasir</p>
+                        <h1 className="text-2xl font-bold">Rekonsiliasi</h1>
+                        <p className="text-muted-foreground">Ringkasan transaksi per shift</p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <Label htmlFor="date" className="sr-only">Tanggal</Label>
                         <Input
                             id="date"
@@ -85,11 +147,68 @@ export default function ReconciliationIndex({ currency }: Props) {
                             onChange={(e) => setDate(e.target.value)}
                             className="w-auto"
                         />
+                        <Select value={shiftId} onValueChange={setShiftId}>
+                            <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="Pilih Shift" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Semua Shift</SelectItem>
+                                {shifts.map((s) => (
+                                    <SelectItem key={s.id} value={String(s.id)}>
+                                        {s.user_name} ({s.started_at}–{s.ended_at || 'aktif'})
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                         <Button variant="outline" size="icon" onClick={fetchData} disabled={loading}>
                             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                         </Button>
                     </div>
                 </div>
+
+                {/* Shift Info Card (when specific shift selected) */}
+                {data?.shift && (
+                    <Card className="border-primary">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="flex items-center gap-2 text-sm">
+                                <User className="h-4 w-4" />
+                                Shift: {data.shift.user_name}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                <div>
+                                    <p className="text-muted-foreground">Pembukaan</p>
+                                    <p className="font-semibold">{formatMoney(data.shift.opening_cash, currency)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-muted-foreground">Penutupan</p>
+                                    <p className="font-semibold">
+                                        {data.shift.closing_cash !== null 
+                                            ? formatMoney(data.shift.closing_cash, currency)
+                                            : '(belum ditutup)'}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-muted-foreground">Seharusnya</p>
+                                    <p className="font-semibold">{formatMoney(data.shift.expected_cash, currency)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-muted-foreground">Selisih</p>
+                                    <p className={`font-semibold ${
+                                        data.shift.variance !== null 
+                                            ? (data.shift.variance < 0 ? 'text-destructive' : data.shift.variance > 0 ? 'text-success' : '')
+                                            : ''
+                                    }`}>
+                                        {data.shift.variance !== null 
+                                            ? formatMoney(data.shift.variance, currency)
+                                            : '-'}
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Summary Cards */}
                 {data && (

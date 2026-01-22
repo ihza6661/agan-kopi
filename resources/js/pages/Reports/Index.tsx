@@ -35,8 +35,8 @@ import {
 } from 'lucide-react';
 import { formatMoney, formatNumber } from '@/lib/utils';
 import {
-    BarChart,
-    Bar,
+    LineChart,
+    Line,
     XAxis,
     YAxis,
     CartesianGrid,
@@ -93,17 +93,22 @@ export default function ReportsIndex({
     methods,
     statuses,
 }: ReportsProps) {
-    const [summary, setSummary] = useState<Summary>(initialSummary);
-    const [topProducts, setTopProducts] = useState<ProductStat[]>(initialTop);
-    const [slowProducts, setSlowProducts] = useState<ProductStat[]>(initialSlow);
-    const [periodSales, setPeriodSales] = useState<PeriodSale[]>(initialPeriodSales);
+    const [summary, setSummary] = useState<Summary>(initialSummary ?? {
+        total_sales: 0,
+        total_transactions: 0,
+        average_order_value: 0,
+        total_items_sold: 0,
+    });
+    const [topProducts, setTopProducts] = useState<ProductStat[]>(initialTop ?? []);
+    const [slowProducts, setSlowProducts] = useState<ProductStat[]>(initialSlow ?? []);
+    const [periodSales, setPeriodSales] = useState<PeriodSale[]>(initialPeriodSales ?? []);
     const [loading, setLoading] = useState(false);
     const [filters, setFilters] = useState({
-        from: initialFilters.from || '',
-        to: initialFilters.to || '',
-        status: initialFilters.status || 'paid',
-        method: initialFilters.method || '',
-        period: initialFilters.period || 'daily',
+        from: initialFilters?.from || '',
+        to: initialFilters?.to || '',
+        status: initialFilters?.status || 'paid',
+        method: initialFilters?.method || '',
+        period: initialFilters?.period || 'daily',
     });
 
     const fetchData = useCallback(async () => {
@@ -116,7 +121,7 @@ export default function ReportsIndex({
             if (filters.method && filters.method !== 'all') params.set('method', filters.method);
             params.set('period', filters.period);
 
-            const res = await fetch(`/laporan/data?${params.toString()}`, {
+            const res = await fetch(`/laporan-data?${params.toString()}`, {
                 headers: { 'Accept': 'application/json' },
             });
             const data = await res.json();
@@ -320,7 +325,7 @@ export default function ReportsIndex({
                     <CardContent>
                         <div className="h-[300px]">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={periodSales}>
+                                <LineChart data={periodSales}>
                                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                                     <XAxis dataKey="date" className="text-xs" />
                                     <YAxis className="text-xs" tickFormatter={(v) => formatNumber(v)} />
@@ -328,8 +333,15 @@ export default function ReportsIndex({
                                         formatter={(value) => formatMoney(Number(value), currency)}
                                         labelFormatter={(label) => `Tanggal: ${label}`}
                                     />
-                                    <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                                </BarChart>
+                                    <Line 
+                                        type="monotone" 
+                                        dataKey="total" 
+                                        stroke="#3b82f6" 
+                                        strokeWidth={2} 
+                                        dot={true}
+                                        activeDot={{ r: 6 }}
+                                    />
+                                </LineChart>
                             </ResponsiveContainer>
                         </div>
                     </CardContent>
