@@ -1,147 +1,105 @@
-<h1>Point of Sale Toko Sembako</h1>
+## 🐛 Known Issues & Solutions
 
-Sistem kasir (POS) untuk toko sembako berbasis Laravel 12. Mendukung manajemen produk & kategori, transaksi kasir, laporan, pengaturan toko, notifikasi stok, serta integrasi pembayaran Midtrans.
+### 1. CSRF Token Mismatch
+**Problem**: CSRF token mismatch setelah logout → login  
+**Solution**: Sudah fixed! Token refresh otomatis menggunakan Inertia shared props
 
-## ✨ Fitur
+### 2. PostgreSQL vs MySQL Compatibility
+**Problem**: Query MySQL tidak kompatibel dengan PostgreSQL  
+**Solution**: Sudah fixed! Menggunakan driver detection untuk syntax compatibility
 
-- Autentikasi & peran: admin, kasir
-- Manajemen kategori & produk (datatables)
-- Kasir: scan/cari produk, hold/resume transaksi, cetak struk dengan format kustom
-- Pembayaran: integrasi Midtrans (Snap), webhook notifikasi
-- Laporan penjualan + unduh
-- Pengaturan toko (nama, alamat, telepon, mata uang, pajak, diskon, format struk, logo)
-- Notifikasi stok menipis & produk mendekati kadaluarsa
-- Log aktivitas pengguna
+### 3. Shift Opening Cash Display
+**Problem**: Opening cash tidak muncul di dialog End Shift  
+**Solution**: Sudah fixed! Display menunjukkan: opening cash + sales cash
 
-## 🧰 Teknologi
+### 4. Unused Import Warning
+**Problem**: TypeScript warning `fetchWithCsrf` not used di `Cashier/Index.tsx:47`  
+**Status**: Minor issue, tidak mempengaruhi functionality
 
-- PHP ^8.2, Laravel ^12, Inertia.js, React 19
-- PostgreSQL (Production), MySQL/SQLite (Local)
-- Yajra DataTables (server-side)
-- Midtrans PHP SDK
-- Vite, Tailwind CSS 4
+## 🔐 Security Features
 
-## 🌿 Branch Strategy
+- **CSRF Protection**: Token-based CSRF protection pada semua form
+- **HTTPS Enforcement**: Force HTTPS di production
+- **Content Security Policy**: CSP headers untuk XSS protection
+- **SQL Injection Prevention**: Eloquent ORM dengan parameter binding
+- **XSS Prevention**: Automatic escaping di Blade & React
+- **Authentication**: Session-based auth dengan secure cookies
+- **Authorization**: Role-based access control (Admin/Kasir)
+- **Audit Trail**: Track semua perubahan data penting
 
-Repository ini menggunakan 2 branch utama:
+## 📊 Performance Optimizations
 
-- **`production`** - Kode yang sedang running di production (Heroku)
-  - URL: https://agan-kopi-pos-b332db5d7f2e.herokuapp.com/
-  - Stabil, sudah di-test
-  - Hanya update dari `main` setelah testing
-  
-- **`main`** - Development branch (default)
-  - Development aktif terjadi di sini
-  - Fitur baru, bug fixes, eksperimen
-  - Setelah stabil, merge ke `production`
+- **Database Indexing**: Proper indexes pada foreign keys
+- **Lazy Loading**: Image & component lazy loading
+- **Query Optimization**: Eager loading untuk N+1 query prevention
+- **Asset Optimization**: Vite bundling & minification
+- **Caching**: Application cache, config cache, route cache
+- **Server-Side Pagination**: DataTables server-side processing
 
-### Workflow:
+## 🤝 Contributing
+
+### Contribution Workflow
+
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/amazing-feature`
+3. Commit changes: `git commit -m "feat: add amazing feature"`
+4. Push to branch: `git push origin feature/amazing-feature`
+5. Open Pull Request
+
+### Commit Message Convention
+
+Menggunakan [Conventional Commits](https://www.conventionalcommits.org/):
+
+- `feat:` - New feature
+- `fix:` - Bug fix
+- `docs:` - Documentation only
+- `style:` - Code style (formatting, no code change)
+- `refactor:` - Code refactoring
+- `perf:` - Performance improvement
+- `test:` - Adding tests
+- `chore:` - Maintenance tasks
+
+**Examples**:
 ```bash
-# Development
-git checkout main
-git pull origin main
-# ... kerjakan fitur baru ...
-git commit -m "feat: fitur baru"
-git push origin main
-
-# Deploy ke Production
-git checkout production
-git merge main
-git push origin production
-git push heroku production:main  # Deploy ke Heroku
+git commit -m "feat: add shift management system"
+git commit -m "fix: resolve CSRF token mismatch on logout"
+git commit -m "docs: update README with CI/CD documentation"
+git commit -m "chore: remove unused Azure deployment workflow"
 ```
 
-## ✅ Prasyarat
+## 📞 Support & Contact
 
-- PHP 8.2+
-- Database Relational (SQLLite, MySQL atau PostgreSQL)
+- **Repository**: https://github.com/ihza6661/agan-kopi
+- **Issues**: https://github.com/ihza6661/agan-kopi/issues
+- **Email**: adibayuluthfiansyah@gmail.com
 
-## 🚀 Install Project
+## 🙏 Acknowledgments
 
-1) Clone repo
-```powershell
-git clone https://github.com/WageFolabessy/point_of_sale_minimarket.git
-```
+- Laravel Team - Framework
+- Inertia.js Team - Server-side rendering
+- React Team - UI Library
+- shadcn/ui - UI Components
+- Tailwind CSS - Styling
+- Heroku - Hosting Platform
 
-2) Masuk folder proyek
-```powershell
-cd point_of_sale_minimarket
-```
+## 📜 Project History
 
-3) Install Dependency
-```powershell
-composer install
-```
+### Recent Major Updates
 
-4) Salin env dan generate app key
-```powershell
-Copy-Item .env.example .env
-php artisan key:generate
-```
+**2026-01-24**: CI/CD Implementation
+- Implemented complete GitHub Actions pipeline
+- Automated testing on every push
+- Automated deployment to Heroku
+- Created comprehensive documentation
 
-5) Setup database dan sesuaikan dengan konfigurasi database
-```env
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=pos
-DB_USERNAME=root
-DB_PASSWORD=secret
-```
+**2026-01-23**: Bug Fixes & Improvements
+- Fixed PostgreSQL compatibility issues
+- Fixed CSRF token mismatch on account switch
+- Fixed shift opening cash display
+- Established branch strategy (main/production)
 
-6) Jalankan migrasi dan seeder
-```powershell
-php artisan migrate --seed
-```
-
-7) Jalankan server Laravel
-
-```powershell
-php artisan serve
-```
-
-## 🔐 Kredensial
-
-- Admin: admin@admin.com / password
-- Kasir: kasir@kasir.com / password
-
-
-## 💳 Midtrans
-
-Isi variabel berikut di `.env`:
-
-```env
-MIDTRANS_SERVER_KEY=your_server_key
-MIDTRANS_CLIENT_KEY=your_client_key
-MIDTRANS_IS_PRODUCTION=false
-MIDTRANS_IS_SANITIZED=true
-MIDTRANS_IS_3DS=true
-
-# Opsional: override notification URL (contoh pakai ngrok http 8000)
-NGROK_HTTP_8000=https://<your-ngrok-subdomain>.ngrok-free.app/midtrans/notification
-```
-
-Webhook (POST) akan menerima notifikasi di:
-
-- `POST /midtrans/notification`
-
-Jika lokal, jalankan tunneling (ngrok) dan set `NGROK_HTTP_8000` agar Midtrans bisa memanggil endpoint lokal.
-
-## ⚙️ Pengaturan Aplikasi
-
-Halaman Pengaturan memungkinkan ubah:
-- Nama/Alamat/Telepon/Logo Toko
-- Mata uang, Pajak (%), Diskon (%)
-- Format Nomor Struk (mis: `INV-{YYYY}{MM}{DD}-{SEQ:6}`)
-
-## 🧪 Menjalankan Test
-
-```powershell
-php artisan test
-# atau
-vendor\bin\phpunit --testsuite Unit,Feature
-```
-
-## 📄 Lisensi
-
-MIT
+**2026-01-22**: Core Features
+- Added shift management system
+- Added transaction confirmation workflow
+- Added audit trail tracking
+- Enhanced security measures
