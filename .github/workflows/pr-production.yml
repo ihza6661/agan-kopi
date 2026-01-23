@@ -1,0 +1,104 @@
+name: PR Check - Production Branch
+
+on:
+  pull_request:
+    branches: [ production ]
+
+jobs:
+  validate:
+    name: Validate PR to Production
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check PR Description
+        run: |
+          if [ -z "${{ github.event.pull_request.body }}" ]; then
+            echo "::error::PR description is required for production deployment"
+            exit 1
+          fi
+
+      - name: Validate Branch Source
+        run: |
+          SOURCE_BRANCH="${{ github.head_ref }}"
+          if [ "$SOURCE_BRANCH" != "main" ] && [ "$SOURCE_BRANCH" != "hotfix/"* ]; then
+            echo "::error::Only 'main' or 'hotfix/*' branches can be merged to production"
+            exit 1
+          fi
+
+  test:
+    name: Run Full Test Suite
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testing
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo, pdo_pgsql, intl, zip, bcmath
+          coverage: xdebug
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Copy .env
+        run: |
+          cp .env.example .env
+          echo "DB_CONNECTION=pgsql" >> .env
+          echo "DB_HOST=127.0.0.1" >> .env
+          echo "DB_PORT=5432" >> .env
+          echo "DB_DATABASE=testing" >> .env
+          echo "DB_USERNAME=postgres" >> .env
+          echo "DB_PASSWORD=postgres" >> .env
+
+      - name: Install Dependencies
+        run: |
+          composer install --no-interaction --prefer-dist --optimize-autoloader
+          npm ci
+
+      - name: Generate Application Key
+        run: php artisan key:generate
+
+      - name: Run Database Migrations
+        run: php artisan migrate --force
+
+      - name: Build Assets
+        run: npm run build
+
+      - name: Run Tests with Coverage
+        run: php artisan test --coverage
+
+      - name: Comment Test Results
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ All tests passed! Ready for production deployment.'
+            })

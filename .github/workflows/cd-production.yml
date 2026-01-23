@@ -1,0 +1,82 @@
+name: CD - Production Deploy
+
+on:
+  push:
+    branches: [ production ]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  deploy:
+    name: Deploy to Heroku
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for Heroku
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install NPM Dependencies
+        run: npm ci
+
+      - name: Build Production Assets
+        run: npm run build
+
+      - name: Commit built assets
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add -f public/build
+          git diff-index --quiet HEAD || git commit -m "Build assets for deployment [skip ci]"
+
+      - name: Deploy to Heroku
+        uses: akhileshns/heroku-deploy@v3.13.15
+        with:
+          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+          heroku_app_name: "agan-kopi-pos"
+          heroku_email: ${{secrets.HEROKU_EMAIL}}
+          branch: "production"
+          
+      - name: Run Database Migrations on Heroku
+        env:
+          HEROKU_API_KEY: ${{secrets.HEROKU_API_KEY}}
+        run: |
+          # Install Heroku CLI if not available
+          if ! command -v heroku &> /dev/null; then
+            curl https://cli-assets.heroku.com/install.sh | sh
+          fi
+          
+          # Run migrations
+          heroku run "php artisan migrate --force" -a agan-kopi-pos
+
+      - name: Clear Heroku Cache
+        env:
+          HEROKU_API_KEY: ${{secrets.HEROKU_API_KEY}}
+        run: |
+          heroku run "php artisan config:clear" -a agan-kopi-pos
+          heroku run "php artisan route:clear" -a agan-kopi-pos
+          heroku run "php artisan view:clear" -a agan-kopi-pos
+
+      - name: Verify Deployment
+        run: |
+          echo "Deployment completed!"
+          echo "URL: https://agan-kopi-pos-b332db5d7f2e.herokuapp.com/"
+          echo "Check logs: heroku logs --tail -a agan-kopi-pos"
+
+      - name: Create Deployment Summary
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **App:** agan-kopi-pos" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** production" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL:** https://agan-kopi-pos-b332db5d7f2e.herokuapp.com/" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deployed at:** $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Recent Commits" >> $GITHUB_STEP_SUMMARY
+          git log -3 --pretty=format:"- %h %s (%an)" >> $GITHUB_STEP_SUMMARY
