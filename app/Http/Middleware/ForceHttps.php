@@ -11,7 +11,7 @@ class ForceHttps
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (App::environment('production')) {
+        if (App::environment(['production', 'staging'])) {
             if (!$request->isSecure()) {
                 app('url')->forceScheme('https');
             }

@@ -52,8 +52,8 @@ class SecurityHeaders
             $response->headers->set('Content-Security-Policy', implode('; ', $csp));
         }
 
-        // HSTS only in production over HTTPS
-        if (app()->environment('production') && $request->isSecure()) {
+        // HSTS in production and staging over HTTPS
+        if (app()->environment(['production', 'staging']) && $request->isSecure()) {
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
         }
 
