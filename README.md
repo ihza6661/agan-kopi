@@ -15,9 +15,41 @@ Sistem kasir (POS) untuk toko sembako berbasis Laravel 12. Mendukung manajemen p
 
 ## 🧰 Teknologi
 
-- PHP ^8.2, Laravel ^12
+- PHP ^8.2, Laravel ^12, Inertia.js, React 19
+- PostgreSQL (Production), MySQL/SQLite (Local)
 - Yajra DataTables (server-side)
 - Midtrans PHP SDK
+- Vite, Tailwind CSS 4
+
+## 🌿 Branch Strategy
+
+Repository ini menggunakan 2 branch utama:
+
+- **`production`** - Kode yang sedang running di production (Heroku)
+  - URL: https://agan-kopi-pos-b332db5d7f2e.herokuapp.com/
+  - Stabil, sudah di-test
+  - Hanya update dari `main` setelah testing
+  
+- **`main`** - Development branch (default)
+  - Development aktif terjadi di sini
+  - Fitur baru, bug fixes, eksperimen
+  - Setelah stabil, merge ke `production`
+
+### Workflow:
+```bash
+# Development
+git checkout main
+git pull origin main
+# ... kerjakan fitur baru ...
+git commit -m "feat: fitur baru"
+git push origin main
+
+# Deploy ke Production
+git checkout production
+git merge main
+git push origin production
+git push heroku production:main  # Deploy ke Heroku
+```
 
 ## ✅ Prasyarat
 
