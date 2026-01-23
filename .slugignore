@@ -1,0 +1,9 @@
+/tests
+/storage/logs
+/.env.example
+/phpunit.xml
+.editorconfig
+.gitattributes
+.gitignore
+README.md
+CORE_FREEZE.md
