@@ -61,9 +61,11 @@ class ReportService implements ReportServiceInterface
     public function monthlySalesQuery(array $filters): Builder
     {
         $driver = DB::connection()->getDriverName();
-        $expr = $driver === 'sqlite'
-            ? "strftime('%Y-%m', t.created_at)"
-            : "DATE_FORMAT(t.created_at, '%Y-%m')";
+        $expr = match ($driver) {
+            'sqlite' => "strftime('%Y-%m', t.created_at)",
+            'pgsql' => "TO_CHAR(t.created_at, 'YYYY-MM')",
+            default => "DATE_FORMAT(t.created_at, '%Y-%m')",
+        };
 
         $trx = $this->baseTransactionQuery($filters)
             ->selectRaw("$expr as grp_date, COUNT(*) as trx_count, COALESCE(SUM(t.total),0) as total")
@@ -97,7 +99,7 @@ class ReportService implements ReportServiceInterface
             ->groupBy('d.product_id', 'p.name')
             ->orderByDesc(DB::raw('SUM(d.quantity)'))
             ->limit($limit)
-            ->selectRaw('d.product_id, COALESCE(p.name, CONCAT("#", d.product_id)) as name, SUM(d.quantity) as qty, SUM(d.total) as total')
+            ->selectRaw('d.product_id, COALESCE(p.name, \'#\' || CAST(d.product_id AS TEXT)) as name, SUM(d.quantity) as qty, SUM(d.total) as total')
             ->get();
     }
 
@@ -131,7 +133,7 @@ class ReportService implements ReportServiceInterface
             ->when(!empty($filters['method']), fn($q) => $q->where('t.payment_method', $filters['method']))
             ->groupBy('d.product_id', 'p.name', 'p.sku')
             ->orderByDesc(DB::raw('SUM(d.quantity)'))
-            ->selectRaw('d.product_id, COALESCE(p.name, CONCAT("#", d.product_id)) as name, p.sku, SUM(d.quantity) as qty, SUM(d.total) as total')
+            ->selectRaw('d.product_id, COALESCE(p.name, \'#\' || CAST(d.product_id AS TEXT)) as name, p.sku, SUM(d.quantity) as qty, SUM(d.total) as total')
             ->get();
     }
 

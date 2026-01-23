@@ -70,7 +70,7 @@ class DashboardController extends Controller
             ->groupBy('d.product_id', 'p.name')
             ->orderByDesc(DB::raw('SUM(d.quantity)'))
             ->limit(5)
-            ->selectRaw('COALESCE(p.name, CONCAT("#", d.product_id)) as name, SUM(d.quantity) as qty, SUM(d.total) as total')
+            ->selectRaw('COALESCE(p.name, \'#\' || CAST(d.product_id AS TEXT)) as name, SUM(d.quantity) as qty, SUM(d.total) as total')
             ->get();
 
         return Inertia::render('Dashboard', [
