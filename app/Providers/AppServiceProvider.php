@@ -24,6 +24,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Http\Request;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -48,6 +49,28 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Configure trusted proxies for Heroku
+        if (app()->environment(['production', 'staging'])) {
+            Request::setTrustedProxies(
+                ['*'],
+                Request::HEADER_X_FORWARDED_FOR |
+                Request::HEADER_X_FORWARDED_HOST |
+                Request::HEADER_X_FORWARDED_PORT |
+                Request::HEADER_X_FORWARDED_PROTO |
+                Request::HEADER_X_FORWARDED_AWS_ELB
+            );
+        }
+
+        // Force HTTPS in production/staging environments
+        if (app()->environment(['production', 'staging']) || env('FORCE_HTTPS', false)) {
+            URL::forceScheme('https');
+        }
+
+        // Force HTTPS in production/staging environments
+        if (app()->environment(['production', 'staging']) || env('FORCE_HTTPS', false)) {
+            URL::forceScheme('https');
+        }
+        
         // Force HTTPS in production/staging environments
         if (app()->environment(['production', 'staging']) || env('FORCE_HTTPS', false)) {
             URL::forceScheme('https');
