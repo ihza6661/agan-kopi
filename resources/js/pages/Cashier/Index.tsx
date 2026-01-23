@@ -1123,7 +1123,7 @@ export default function CashierIndex({
                         {shift && (
                             <div className="bg-muted p-3 rounded-md space-y-1 text-sm">
                                 <p>Total Penjualan: <span className="font-semibold">{formatMoney(shift.total_sales || 0, currency)}</span></p>
-                                <p>Cash: {formatMoney(shift.cash_total || 0, currency)}</p>
+                                <p>Cash: {formatMoney((shift.opening_cash || 0) + (shift.cash_total || 0), currency)} <span className="text-muted-foreground">(Modal: {formatMoney(shift.opening_cash || 0, currency)} + Penjualan: {formatMoney(shift.cash_total || 0, currency)})</span></p>
                                 <p>QRIS: {formatMoney(shift.qris_total || 0, currency)}</p>
                                 <p>Transaksi: {shift.transaction_count || 0}</p>
                             </div>
