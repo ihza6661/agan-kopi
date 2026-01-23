@@ -18,7 +18,7 @@ class SettingSeeder extends Seeder
         $settings->set('store.name', 'POS Mutiara Kasih', 'store', 'Nama toko yang tampil di aplikasi');
         $settings->set('store.address', 'Jl. Contoh Alamat No. 1, Kota', 'store', 'Alamat Toko');
         $settings->set('store.phone', '081234567890', 'store', 'No. Telepon Toko');
-        $settings->set('store.logo_path', 'assets/images/logo.webp', 'store', 'Path Logo Toko');
+        $settings->set('store.logo_path', 'assets/images/logo.jpg', 'store', 'Path Logo Toko');
         $settings->set('pos.currency', 'IDR', 'pos', 'Mata uang transaksi');
         $settings->set('pos.tax_percent', 0, 'pos', 'PPN dalam persen');
         $settings->set('pos.discount_percent', 0, 'pos', 'Diskon default dalam persen');

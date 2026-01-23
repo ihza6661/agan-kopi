@@ -43,6 +43,8 @@ import {
 import { useCartStore } from '@/stores/cartStore';
 import { formatMoney, formatNumber, parseMoneyToInt } from '@/lib/utils';
 import type { Product } from '@/types/models';
+import { toast } from 'sonner';
+import { fetchWithCsrf } from '@/lib/csrf';
 
 interface HoldTransaction {
     id: number;
@@ -194,7 +196,7 @@ export default function CashierIndex({
 
         // For cash, require sufficient payment
         if (paymentMethod === 'cash' && paidInt < totalAmount) {
-            alert('Jumlah bayar kurang dari total.');
+            toast.error('Jumlah bayar kurang dari total.');
             return;
         }
 
@@ -256,7 +258,7 @@ export default function CashierIndex({
                 });
             }
         } catch (error) {
-            alert(error instanceof Error ? error.message : 'Terjadi kesalahan.');
+            toast.error(error instanceof Error ? error.message : 'Terjadi kesalahan.');
         } finally {
             setProcessing(false);
         }
@@ -301,7 +303,7 @@ export default function CashierIndex({
                 method: 'qris',
             });
         } catch (error) {
-            alert(error instanceof Error ? error.message : 'Gagal mengonfirmasi pembayaran.');
+            toast.error(error instanceof Error ? error.message : 'Gagal mengonfirmasi pembayaran.');
         } finally {
             setConfirming(false);
         }
@@ -342,9 +344,9 @@ export default function CashierIndex({
 
             // Close pending modal
             setQrisPendingModal({ open: false });
-            alert('Transaksi QRIS telah dibatalkan.');
+            toast.success('Transaksi QRIS telah dibatalkan.');
         } catch (error) {
-            alert(error instanceof Error ? error.message : 'Gagal membatalkan transaksi.');
+            toast.error(error instanceof Error ? error.message : 'Gagal membatalkan transaksi.');
         } finally {
             setConfirming(false);
         }
@@ -378,7 +380,7 @@ export default function CashierIndex({
             setStartShiftModal(false);
             setOpeningCash('');
         } catch (error) {
-            alert(error instanceof Error ? error.message : 'Gagal memulai shift.');
+            toast.error(error instanceof Error ? error.message : 'Gagal memulai shift.');
         } finally {
             setProcessing(false);
         }
@@ -409,14 +411,17 @@ export default function CashierIndex({
             }
 
             // Show summary and prompt for new shift
-            alert(`Shift berhasil diakhiri.\n\nTotal Penjualan: ${formatMoney(data.summary.total_sales, currency)}\nCash: ${formatMoney(data.summary.cash_total, currency)}\nQRIS: ${formatMoney(data.summary.qris_total, currency)}\nVariance: ${formatMoney(data.summary.variance || 0, currency)}`);
+            toast.success(
+                `Shift berhasil diakhiri.\n\nTotal Penjualan: ${formatMoney(data.summary.total_sales, currency)}\nCash: ${formatMoney(data.summary.cash_total, currency)}\nQRIS: ${formatMoney(data.summary.qris_total, currency)}\nVariance: ${formatMoney(data.summary.variance || 0, currency)}`,
+                { duration: 8000 }
+            );
             
             setShift(null);
             setEndShiftModal(false);
             setClosingCash('');
             setStartShiftModal(true); // Prompt to start new shift
         } catch (error) {
-            alert(error instanceof Error ? error.message : 'Gagal mengakhiri shift.');
+            toast.error(error instanceof Error ? error.message : 'Gagal mengakhiri shift.');
         } finally {
             setProcessing(false);
         }
@@ -457,11 +462,11 @@ export default function CashierIndex({
                 throw new Error(data.message || 'Hold failed');
             }
 
-            alert(`Transaksi ditunda: ${data.invoice}`);
+            toast.success(`Transaksi ditunda: ${data.invoice}`);
             clearCart();
             setPaidAmount('');
         } catch (error) {
-            alert(error instanceof Error ? error.message : 'Gagal menunda transaksi.');
+            toast.error(error instanceof Error ? error.message : 'Gagal menunda transaksi.');
         } finally {
             setProcessing(false);
         }
@@ -517,7 +522,7 @@ export default function CashierIndex({
                 setHoldsOpen(false);
             }
         } catch (error) {
-            alert('Gagal memuat transaksi.');
+            toast.error('Gagal memuat transaksi.');
         }
     };
 
@@ -535,7 +540,7 @@ export default function CashierIndex({
             });
             loadHolds();
         } catch {
-            alert('Gagal menghapus.');
+            toast.error('Gagal menghapus.');
         }
     };
 
