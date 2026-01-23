@@ -2,6 +2,7 @@ import type { User, Notification } from './models';
 
 export interface PageProps {
     [key: string]: unknown;
+    csrf_token: string;
     auth: {
         user: User;
     };
