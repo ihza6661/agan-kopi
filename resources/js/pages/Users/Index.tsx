@@ -193,37 +193,46 @@ export default function UsersIndex() {
                                     Tidak ada pengguna ditemukan.
                                 </div>
                             ) : (
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Nama</TableHead>
-                                            <TableHead>Email</TableHead>
-                                            <TableHead>Role</TableHead>
-                                            <TableHead>Bergabung</TableHead>
-                                            <TableHead className="text-right">Aksi</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {users.map((user) => (
-                                            <TableRow key={user.id}>
-                                                <TableCell className="font-medium">
-                                                    {user.name}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {user.email}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {getRoleBadge(user.role)}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {new Date(user.created_at).toLocaleDateString('id-ID')}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex justify-end gap-1">
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader className="hidden sm:table-header-group">
+                                            <TableRow>
+                                                <TableHead>Nama</TableHead>
+                                                <TableHead>Email</TableHead>
+                                                <TableHead>Role</TableHead>
+                                                <TableHead>Bergabung</TableHead>
+                                                <TableHead className="text-right">Aksi</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {users.map((user) => (
+                                                <TableRow 
+                                                    key={user.id}
+                                                    className="flex flex-col sm:table-row border rounded-lg sm:border-0 mb-3 sm:mb-0 mx-3 sm:mx-0 p-4 sm:p-0"
+                                                >
+                                                    <TableCell className="flex flex-col sm:table-cell pb-1 sm:pb-0 border-0">
+                                                        <span className="text-xs text-muted-foreground sm:hidden mb-1">Nama</span>
+                                                        <span className="font-medium">{user.name}</span>
+                                                    </TableCell>
+                                                    <TableCell className="flex flex-col sm:table-cell pb-1 sm:pb-0 border-0">
+                                                        <span className="text-xs text-muted-foreground sm:hidden mb-1">Email</span>
+                                                        <span className="text-sm">{user.email}</span>
+                                                    </TableCell>
+                                                    <TableCell className="flex flex-col sm:table-cell pb-1 sm:pb-0 border-0">
+                                                        <span className="text-xs text-muted-foreground sm:hidden mb-1">Role</span>
+                                                        {getRoleBadge(user.role)}
+                                                    </TableCell>
+                                                    <TableCell className="flex flex-col sm:table-cell pb-2 sm:pb-0 border-0">
+                                                        <span className="text-xs text-muted-foreground sm:hidden mb-1">Bergabung</span>
+                                                        <span className="text-sm">
+                                                            {new Date(user.created_at).toLocaleDateString('id-ID')}
+                                                        </span>
+                                                    </TableCell>
+                                                    <TableCell className="flex justify-end gap-2 sm:table-cell sm:text-right border-0 pt-2 sm:pt-0">
                                                         <Button
                                                             variant="outline"
                                                             size="icon"
-                                                            className="h-8 w-8"
+                                                            className="h-9 w-9 sm:h-8 sm:w-8"
                                                             asChild
                                                         >
                                                             <Link href={`/pengguna/${user.id}/edit`}>
@@ -233,17 +242,17 @@ export default function UsersIndex() {
                                                         <Button
                                                             variant="outline"
                                                             size="icon"
-                                                            className="h-8 w-8 text-destructive"
+                                                            className="h-9 w-9 sm:h-8 sm:w-8 text-destructive"
                                                             onClick={() => setDeleteModal({ open: true, user })}
                                                         >
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
                             )}
                         </ScrollArea>
                     </CardContent>

@@ -21,6 +21,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { Banknote, QrCode, Clock, AlertTriangle, RefreshCw, User } from 'lucide-react';
+import { ResponsiveTable } from '@/components/ui/responsive-table';
 import { formatMoney } from '@/lib/utils';
 
 interface Props {
@@ -289,38 +290,40 @@ export default function ReconciliationIndex({ currency }: Props) {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>No. Transaksi</TableHead>
-                                        <TableHead>Kasir</TableHead>
-                                        <TableHead className="text-right">Total</TableHead>
-                                        <TableHead>Waktu</TableHead>
-                                        <TableHead>Status</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {data.pending_transactions.map((trx) => (
-                                        <TableRow key={trx.id}>
-                                            <TableCell className="font-medium">{trx.invoice}</TableCell>
-                                            <TableCell>{trx.cashier}</TableCell>
-                                            <TableCell className="text-right">
-                                                {formatMoney(trx.total, currency)}
-                                            </TableCell>
-                                            <TableCell>
-                                                {new Date(trx.created_at).toLocaleTimeString('id-ID')}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant={trx.age_minutes > 30 ? 'destructive' : 'warning'}>
-                                                    {trx.age_minutes > 60
-                                                        ? `${Math.floor(trx.age_minutes / 60)}j ${trx.age_minutes % 60}m`
-                                                        : `${trx.age_minutes} menit`}
-                                                </Badge>
-                                            </TableCell>
+                            <ResponsiveTable>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="min-w-[150px]">No. Transaksi</TableHead>
+                                            <TableHead className="min-w-[120px]">Kasir</TableHead>
+                                            <TableHead className="min-w-[120px] text-right">Total</TableHead>
+                                            <TableHead className="min-w-[100px]">Waktu</TableHead>
+                                            <TableHead className="min-w-[120px]">Status</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {data.pending_transactions.map((trx) => (
+                                            <TableRow key={trx.id}>
+                                                <TableCell className="font-medium">{trx.invoice}</TableCell>
+                                                <TableCell>{trx.cashier}</TableCell>
+                                                <TableCell className="text-right">
+                                                    {formatMoney(trx.total, currency)}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {new Date(trx.created_at).toLocaleTimeString('id-ID')}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant={trx.age_minutes > 30 ? 'destructive' : 'warning'}>
+                                                        {trx.age_minutes > 60
+                                                            ? `${Math.floor(trx.age_minutes / 60)}j ${trx.age_minutes % 60}m`
+                                                            : `${trx.age_minutes} menit`}
+                                                    </Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </ResponsiveTable>
                         </CardContent>
                     </Card>
                 )}

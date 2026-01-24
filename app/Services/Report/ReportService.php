@@ -99,7 +99,7 @@ class ReportService implements ReportServiceInterface
             ->groupBy('d.product_id', 'p.name')
             ->orderByDesc(DB::raw('SUM(d.quantity)'))
             ->limit($limit)
-            ->selectRaw('d.product_id, COALESCE(p.name, \'#\' || CAST(d.product_id AS TEXT)) as name, SUM(d.quantity) as qty, SUM(d.total) as total')
+            ->selectRaw("d.product_id, COALESCE(p.name, CONCAT('#', CAST(d.product_id AS VARCHAR))) as name, SUM(d.quantity) as qty, SUM(d.total) as total")
             ->get();
     }
 
@@ -133,7 +133,7 @@ class ReportService implements ReportServiceInterface
             ->when(!empty($filters['method']), fn($q) => $q->where('t.payment_method', $filters['method']))
             ->groupBy('d.product_id', 'p.name', 'p.sku')
             ->orderByDesc(DB::raw('SUM(d.quantity)'))
-            ->selectRaw('d.product_id, COALESCE(p.name, \'#\' || CAST(d.product_id AS TEXT)) as name, p.sku, SUM(d.quantity) as qty, SUM(d.total) as total')
+            ->selectRaw("d.product_id, COALESCE(p.name, CONCAT('#', CAST(d.product_id AS VARCHAR))) as name, p.sku, SUM(d.quantity) as qty, SUM(d.total) as total")
             ->get();
     }
 

@@ -21,7 +21,6 @@ import {
     DialogFooter,
     DialogDescription,
 } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
     Package,
     Search,
@@ -185,19 +184,19 @@ export default function ProductsIndex({ currency }: ProductsProps) {
                 {/* Products Table */}
                 <Card>
                     <CardContent className="p-0">
-                        <ScrollArea className="h-[500px]">
-                            {loading ? (
-                                <div className="flex items-center justify-center h-full py-12">
-                                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                                    <span className="ml-2 text-muted-foreground">Memuat...</span>
-                                </div>
-                            ) : products.length === 0 ? (
-                                <div className="text-center py-12 text-muted-foreground">
-                                    Tidak ada produk ditemukan.
-                                </div>
-                            ) : (
+                        {loading ? (
+                            <div className="flex items-center justify-center h-full py-12">
+                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                                <span className="ml-2 text-muted-foreground">Memuat...</span>
+                            </div>
+                        ) : products.length === 0 ? (
+                            <div className="text-center py-12 text-muted-foreground">
+                                Tidak ada produk ditemukan.
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
                                 <Table>
-                                    <TableHeader>
+                                    <TableHeader className="hidden sm:table-header-group">
                                         <TableRow>
                                             <TableHead>SKU</TableHead>
                                             <TableHead>Nama Produk</TableHead>
@@ -209,58 +208,66 @@ export default function ProductsIndex({ currency }: ProductsProps) {
                                     </TableHeader>
                                     <TableBody>
                                         {products.map((product) => (
-                                            <TableRow key={product.id}>
-                                                <TableCell className="font-mono text-sm">
+                                            <TableRow 
+                                                key={product.id}
+                                                className="flex flex-col sm:table-row border rounded-lg sm:border-0 mb-3 sm:mb-0 mx-3 sm:mx-0 p-4 sm:p-0"
+                                            >
+                                                <TableCell className="flex flex-col sm:table-cell pb-0 sm:pb-0 border-0">
+                                                    <span className="text-lg font-semibold sm:text-base sm:font-medium">
+                                                        {product.name}
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground font-mono sm:hidden">
+                                                        SKU: {product.sku} • {product.category?.name || 'Tanpa Kategori'}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell className="hidden sm:table-cell font-mono text-sm border-0">
                                                     {product.sku}
                                                 </TableCell>
-                                                <TableCell className="font-medium">
-                                                    {product.name}
-                                                </TableCell>
-                                                <TableCell>
+                                                <TableCell className="hidden sm:table-cell border-0">
                                                     {product.category?.name || (
                                                         <span className="text-muted-foreground">-</span>
                                                     )}
                                                 </TableCell>
-                                                <TableCell className="text-right">
-                                                    {formatMoney(product.price, currency)}
+                                                <TableCell className="flex flex-col sm:table-cell sm:text-right pb-1 sm:pb-0 border-0">
+                                                    <span className="text-xs text-muted-foreground sm:hidden">Harga</span>
+                                                    <span className="font-medium">{formatMoney(product.price, currency)}</span>
                                                 </TableCell>
-                                                <TableCell className="text-center">
-                                                    {getStockBadge(product.stock)}
+                                                <TableCell className="flex flex-col sm:table-cell sm:text-center pb-2 sm:pb-0 border-0">
+                                                    <span className="text-xs text-muted-foreground sm:hidden mb-1">Stok</span>
+                                                    <div>{getStockBadge(product.stock)}</div>
                                                 </TableCell>
-                                                <TableCell>
-                                                    <div className="flex justify-end gap-1">
-                                                        <Button
-                                                            variant="outline"
-                                                            size="icon"
-                                                            className="h-8 w-8"
-                                                            asChild
-                                                        >
-                                                            <Link href={`/produk/${product.id}/edit`}>
-                                                                <Pencil className="h-4 w-4" />
-                                                            </Link>
-                                                        </Button>
-                                                        <Button
-                                                            variant="outline"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-destructive"
-                                                            onClick={() => setDeleteModal({ open: true, product })}
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
+                                                <TableCell className="flex justify-end gap-2 sm:table-cell sm:text-right border-0 pt-2 sm:pt-0">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="icon"
+                                                        className="h-9 w-9 sm:h-8 sm:w-8"
+                                                        asChild
+                                                    >
+                                                        <Link href={`/produk/${product.id}/edit`}>
+                                                            <Pencil className="h-4 w-4" />
+                                                        </Link>
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="icon"
+                                                        className="h-9 w-9 sm:h-8 sm:w-8 text-destructive"
+                                                        onClick={() => setDeleteModal({ open: true, product })}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
                                 </Table>
-                            )}
-                        </ScrollArea>
+                            </div>
+                        )}
                     </CardContent>
 
                     {/* Pagination */}
                     {!loading && products.length > 0 && (
-                        <div className="flex items-center justify-between px-4 py-3 border-t">
-                            <div className="text-sm text-muted-foreground">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-3 border-t">
+                            <div className="text-sm text-muted-foreground text-center sm:text-left">
                                 Menampilkan {((pagination.currentPage - 1) * pagination.perPage) + 1} -{' '}
                                 {Math.min(pagination.currentPage * pagination.perPage, pagination.total)} dari{' '}
                                 {pagination.total} produk
@@ -273,7 +280,7 @@ export default function ProductsIndex({ currency }: ProductsProps) {
                                     disabled={pagination.currentPage <= 1}
                                 >
                                     <ChevronLeft className="h-4 w-4" />
-                                    Prev
+                                    <span className="hidden sm:inline ml-1">Prev</span>
                                 </Button>
                                 <Button
                                     variant="outline"
@@ -281,7 +288,7 @@ export default function ProductsIndex({ currency }: ProductsProps) {
                                     onClick={() => fetchProducts(pagination.currentPage + 1)}
                                     disabled={pagination.currentPage >= pagination.lastPage}
                                 >
-                                    Next
+                                    <span className="hidden sm:inline mr-1">Next</span>
                                     <ChevronRight className="h-4 w-4" />
                                 </Button>
                             </div>

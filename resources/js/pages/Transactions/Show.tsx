@@ -271,36 +271,50 @@ export default function TransactionShow({ trx, currency }: TransactionShowProps)
                     <CardContent className="p-0">
                         <div className="overflow-x-auto">
                             <Table>
-                                <TableHeader>
+                                <TableHeader className="hidden sm:table-header-group">
                                     <TableRow>
                                         <TableHead className="w-12">#</TableHead>
-                                        <TableHead className="min-w-[150px]">Produk</TableHead>
-                                        <TableHead className="min-w-[100px]">SKU</TableHead>
-                                        <TableHead className="text-right min-w-[80px]">Harga</TableHead>
-                                        <TableHead className="text-center min-w-[60px]">Qty</TableHead>
-                                        <TableHead className="text-right min-w-[80px]">Total</TableHead>
+                                        <TableHead>Produk</TableHead>
+                                        <TableHead>SKU</TableHead>
+                                        <TableHead className="text-right">Harga</TableHead>
+                                        <TableHead className="text-center">Qty</TableHead>
+                                        <TableHead className="text-right">Total</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {trx.details.map((detail, index) => (
-                                        <TableRow key={detail.id}>
-                                            <TableCell className="text-muted-foreground">
-                                                {index + 1}
+                                        <TableRow 
+                                            key={detail.id}
+                                            className="flex flex-col sm:table-row border rounded-lg sm:border-0 mb-3 sm:mb-0 mx-3 sm:mx-0 p-4 sm:p-0"
+                                        >
+                                            <TableCell className="flex items-center gap-2 sm:table-cell pb-0 sm:pb-0 border-0 sm:w-12">
+                                                <span className="text-muted-foreground text-xs sm:text-sm">{index + 1}.</span>
+                                                <span className="font-semibold text-base sm:hidden">
+                                                    {detail.product?.name || detail.product_name || `Produk #${detail.product_id}`}
+                                                </span>
                                             </TableCell>
-                                            <TableCell className="font-medium break-words">
+                                            <TableCell className="hidden sm:table-cell font-medium break-words border-0">
                                                 {detail.product?.name || detail.product_name || `Produk #${detail.product_id}`}
                                             </TableCell>
-                                            <TableCell className="text-muted-foreground">
-                                                {detail.product?.sku || '-'}
+                                            <TableCell className="flex flex-col sm:table-cell pb-1 sm:pb-0 border-0">
+                                                <span className="text-xs text-muted-foreground sm:hidden">SKU</span>
+                                                <span className="text-sm text-muted-foreground">
+                                                    {detail.product?.sku || '-'}
+                                                </span>
                                             </TableCell>
-                                            <TableCell className="text-right whitespace-nowrap">
-                                                {formatMoney(detail.price, currency)}
+                                            <TableCell className="flex justify-between sm:table-cell sm:text-right pb-1 sm:pb-0 border-0">
+                                                <span className="text-xs text-muted-foreground sm:hidden">Harga</span>
+                                                <span className="whitespace-nowrap">{formatMoney(detail.price, currency)}</span>
                                             </TableCell>
-                                            <TableCell className="text-center">
-                                                {formatNumber(detail.quantity)}
+                                            <TableCell className="flex justify-between sm:table-cell sm:text-center pb-1 sm:pb-0 border-0">
+                                                <span className="text-xs text-muted-foreground sm:hidden">Qty</span>
+                                                <span>{formatNumber(detail.quantity)}</span>
                                             </TableCell>
-                                            <TableCell className="text-right font-medium whitespace-nowrap">
-                                                {formatMoney(detail.total, currency)}
+                                            <TableCell className="flex justify-between sm:table-cell sm:text-right pt-2 sm:pt-0 border-0 border-t sm:border-t-0">
+                                                <span className="text-xs text-muted-foreground sm:hidden">Total</span>
+                                                <span className="font-semibold sm:font-medium whitespace-nowrap">
+                                                    {formatMoney(detail.total, currency)}
+                                                </span>
                                             </TableCell>
                                         </TableRow>
                                     ))}

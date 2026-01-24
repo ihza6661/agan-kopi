@@ -21,7 +21,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
     CreditCard,
     Search,
@@ -278,19 +277,19 @@ export default function PaymentsIndex({
                 {/* Payments Table */}
                 <Card>
                     <CardContent className="p-0">
-                        <ScrollArea className="h-[500px]">
-                            {loading ? (
-                                <div className="flex items-center justify-center h-full py-12">
-                                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                                    <span className="ml-2 text-muted-foreground">Memuat...</span>
-                                </div>
-                            ) : payments.length === 0 ? (
-                                <div className="text-center py-12 text-muted-foreground">
-                                    Tidak ada pembayaran ditemukan.
-                                </div>
-                            ) : (
+                        {loading ? (
+                            <div className="flex items-center justify-center h-full py-12">
+                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                                <span className="ml-2 text-muted-foreground">Memuat...</span>
+                            </div>
+                        ) : payments.length === 0 ? (
+                            <div className="text-center py-12 text-muted-foreground">
+                                Tidak ada pembayaran ditemukan.
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
                                 <Table>
-                                    <TableHeader>
+                                    <TableHeader className="hidden sm:table-header-group">
                                         <TableRow>
                                             <TableHead>Invoice</TableHead>
                                             <TableHead>Kasir</TableHead>
@@ -305,25 +304,67 @@ export default function PaymentsIndex({
                                     </TableHeader>
                                     <TableBody>
                                         {payments.map((pay) => (
-                                            <TableRow key={pay.id}>
-                                                <TableCell>
+                                            <TableRow 
+                                                key={pay.id}
+                                                className="flex flex-col sm:table-row border rounded-lg sm:border-0 mb-3 sm:mb-0 mx-3 sm:mx-0 p-4 sm:p-0"
+                                            >
+                                                <TableCell className="flex flex-col sm:table-cell pb-0 sm:pb-0 border-0">
                                                     <Link
                                                         href={`/transaksi/${pay.transaction_id}`}
-                                                        className="font-medium text-primary hover:underline"
+                                                        className="text-lg font-semibold text-primary hover:underline sm:text-base sm:font-medium"
                                                     >
                                                         {pay.invoice}
                                                     </Link>
+                                                    <span className="text-xs text-muted-foreground sm:hidden">
+                                                        {new Date(pay.created_at).toLocaleString('id-ID', {
+                                                            day: '2-digit',
+                                                            month: '2-digit',
+                                                            year: 'numeric',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit',
+                                                        })}
+                                                    </span>
                                                 </TableCell>
-                                                <TableCell>{pay.cashier}</TableCell>
-                                                <TableCell>
+                                                <TableCell className="flex flex-col sm:table-cell pb-1 sm:pb-0 border-0">
+                                                    <span className="text-xs text-muted-foreground sm:hidden">Kasir</span>
+                                                    <span className="text-sm">{pay.cashier}</span>
+                                                </TableCell>
+                                                <TableCell className="flex items-center gap-2 sm:table-cell pb-1 sm:pb-0 border-0">
                                                     <Badge variant="outline">{pay.method.toUpperCase()}</Badge>
+                                                    {getStatusBadge(pay.status)}
                                                 </TableCell>
-                                                <TableCell>{pay.provider || '-'}</TableCell>
-                                                <TableCell>{getStatusBadge(pay.status)}</TableCell>
-                                                <TableCell className="text-right font-medium">
-                                                    {formatMoney(pay.amount, currency)}
+                                                <TableCell className="hidden sm:table-cell border-0">
+                                                    {pay.provider || '-'}
                                                 </TableCell>
-                                                <TableCell>
+                                                <TableCell className="hidden sm:table-cell border-0">
+                                                    {getStatusBadge(pay.status)}
+                                                </TableCell>
+                                                <TableCell className="flex items-center justify-between sm:table-cell sm:text-right pb-1 sm:pb-0 border-0">
+                                                    <span className="text-base font-semibold sm:font-medium">
+                                                        {formatMoney(pay.amount, currency)}
+                                                    </span>
+                                                    <div className="flex gap-2 sm:hidden">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="icon"
+                                                            className="h-9 w-9"
+                                                            asChild
+                                                        >
+                                                            <Link href={`/transaksi/${pay.transaction_id}`}>
+                                                                <Eye className="h-4 w-4" />
+                                                            </Link>
+                                                        </Button>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="icon"
+                                                            className="h-9 w-9"
+                                                            onClick={() => window.open(`/transaksi/${pay.transaction_id}/struk`, '_blank')}
+                                                        >
+                                                            <Printer className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="hidden sm:table-cell border-0">
                                                     {new Date(pay.created_at).toLocaleString('id-ID', {
                                                         day: '2-digit',
                                                         month: '2-digit',
@@ -332,7 +373,7 @@ export default function PaymentsIndex({
                                                         minute: '2-digit',
                                                     })}
                                                 </TableCell>
-                                                <TableCell>
+                                                <TableCell className="hidden sm:table-cell border-0">
                                                     {pay.paid_at
                                                         ? new Date(pay.paid_at).toLocaleString('id-ID', {
                                                               day: '2-digit',
@@ -343,7 +384,7 @@ export default function PaymentsIndex({
                                                           })
                                                         : '-'}
                                                 </TableCell>
-                                                <TableCell>
+                                                <TableCell className="hidden sm:table-cell sm:text-right border-0">
                                                     <div className="flex justify-end gap-1">
                                                         <Button
                                                             variant="outline"
@@ -369,8 +410,8 @@ export default function PaymentsIndex({
                                         ))}
                                     </TableBody>
                                 </Table>
-                            )}
-                        </ScrollArea>
+                            </div>
+                        )}
                     </CardContent>
 
                     {/* Pagination */}
@@ -389,7 +430,7 @@ export default function PaymentsIndex({
                                     disabled={pagination.currentPage <= 1}
                                 >
                                     <ChevronLeft className="h-4 w-4" />
-                                    Prev
+                                    <span className="hidden sm:inline ml-1">Prev</span>
                                 </Button>
                                 <Button
                                     variant="outline"
@@ -397,7 +438,7 @@ export default function PaymentsIndex({
                                     onClick={() => fetchPayments(pagination.currentPage + 1)}
                                     disabled={pagination.currentPage >= pagination.lastPage}
                                 >
-                                    Next
+                                    <span className="hidden sm:inline mr-1">Next</span>
                                     <ChevronRight className="h-4 w-4" />
                                 </Button>
                             </div>
