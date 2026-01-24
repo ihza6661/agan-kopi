@@ -216,8 +216,8 @@ export default function CashierIndex({
 
             // Handle CSRF mismatch
             if (res.status === 419) {
-                alert('Sesi Anda telah kedaluwarsa. Halaman akan dimuat ulang.');
-                window.location.reload();
+                toast.error('Sesi Anda telah kedaluwarsa. Halaman akan dimuat ulang.');
+                setTimeout(() => window.location.reload(), 2000);
                 return;
             }
 
@@ -274,8 +274,8 @@ export default function CashierIndex({
             });
 
             if (res.status === 419) {
-                alert('Sesi Anda telah kedaluwarsa. Halaman akan dimuat ulang.');
-                window.location.reload();
+                toast.error('Sesi Anda telah kedaluwarsa. Halaman akan dimuat ulang.');
+                setTimeout(() => window.location.reload(), 2000);
                 return;
             }
 
@@ -322,8 +322,8 @@ export default function CashierIndex({
             });
 
             if (res.status === 419) {
-                alert('Sesi Anda telah kedaluwarsa. Halaman akan dimuat ulang.');
-                window.location.reload();
+                toast.error('Sesi Anda telah kedaluwarsa. Halaman akan dimuat ulang.');
+                setTimeout(() => window.location.reload(), 2000);
                 return;
             }
 
@@ -442,8 +442,8 @@ export default function CashierIndex({
             });
 
             if (res.status === 419) {
-                alert('Sesi Anda telah kedaluwarsa. Halaman akan dimuat ulang.');
-                window.location.reload();
+                toast.error('Sesi Anda telah kedaluwarsa. Halaman akan dimuat ulang.');
+                setTimeout(() => window.location.reload(), 2000);
                 return;
             }
 
@@ -486,8 +486,8 @@ export default function CashierIndex({
             });
 
             if (res.status === 419) {
-                alert('Sesi Anda telah kedaluwarsa. Halaman akan dimuat ulang.');
-                window.location.reload();
+                toast.error('Sesi Anda telah kedaluwarsa. Halaman akan dimuat ulang.');
+                setTimeout(() => window.location.reload(), 2000);
                 return;
             }
 

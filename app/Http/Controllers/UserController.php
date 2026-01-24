@@ -104,7 +104,14 @@ class UserController extends Controller
             return back()->with('error', 'Tidak dapat menghapus akun sendiri.');
         }
         
-        $this->service->delete($user);
+        try {
+            $this->service->delete($user);
+        } catch (\Exception $e) {
+            if (request()->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+            return back()->with('error', $e->getMessage());
+        }
         
         if (request()->expectsJson()) {
             return response()->json(['deleted' => true]);

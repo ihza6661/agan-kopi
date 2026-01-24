@@ -3,8 +3,10 @@
 namespace App\Services\Cashier;
 
 use App\Enums\PaymentMethod;
+use App\Enums\PaymentStatus;
 use App\Enums\TransactionStatus;
 use App\Models\ActivityLog;
+use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Shift;
 use App\Models\Transaction;
@@ -113,6 +115,18 @@ class CashierService implements CashierServiceInterface
             if ($isCash) {
                 $this->stockService->commitTransaction($trx);
                 $trx->update(['status' => TransactionStatus::PAID]);
+                
+                // Create Payment record for CASH transactions
+                Payment::create([
+                    'transaction_id' => $trx->id,
+                    'method' => $method,
+                    'provider' => null,
+                    'provider_transaction_id' => null,
+                    'provider_order_id' => null,
+                    'status' => PaymentStatus::SETTLEMENT,
+                    'amount' => $total,
+                    'paid_at' => now(),
+                ]);
             }
 
             ActivityLog::create([
