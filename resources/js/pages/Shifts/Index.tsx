@@ -135,75 +135,96 @@ export default function ShiftsIndex({ currency }: Props) {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Tanggal</TableHead>
-                                    <TableHead>Kasir</TableHead>
-                                    <TableHead>Waktu</TableHead>
-                                    <TableHead className="text-right">Pembukaan</TableHead>
-                                    <TableHead className="text-right">Penutupan</TableHead>
-                                    <TableHead className="text-right">Seharusnya</TableHead>
-                                    <TableHead className="text-right">Variance</TableHead>
-                                    <TableHead className="text-right">Penjualan</TableHead>
-                                    <TableHead>Trx</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {data?.data.map((shift) => (
-                                    <TableRow key={shift.id}>
-                                        <TableCell className="font-medium">
-                                            {new Date(shift.started_at).toLocaleDateString('id-ID')}
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader className="hidden lg:table-header-group">
+                                    <TableRow>
+                                        <TableHead>Tanggal</TableHead>
+                                        <TableHead>Kasir</TableHead>
+                                        <TableHead>Waktu</TableHead>
+                                        <TableHead className="text-right">Pembukaan</TableHead>
+                                        <TableHead className="text-right">Penutupan</TableHead>
+                                        <TableHead className="text-right">Seharusnya</TableHead>
+                                        <TableHead className="text-right">Variance</TableHead>
+                                        <TableHead className="text-right">Penjualan</TableHead>
+                                        <TableHead>Trx</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {data?.data.map((shift) => (
+                                        <TableRow 
+                                            key={shift.id}
+                                            className="flex flex-col lg:table-row border rounded-lg lg:border-0 mb-3 lg:mb-0 mx-3 lg:mx-0 p-4 lg:p-0"
+                                        >
+                                            <TableCell className="flex items-center justify-between lg:table-cell pb-1 lg:pb-0 border-0">
+                                                <span className="font-semibold lg:font-medium">
+                                                    {new Date(shift.started_at).toLocaleDateString('id-ID')}
+                                                </span>
+                                                {shift.ended_at  
+                                                    ? null
+                                                    : <Badge variant="default" className="lg:hidden">Aktif</Badge>}
+                                            </TableCell>
+                                            <TableCell className="flex items-center gap-2 lg:table-cell pb-1 lg:pb-0 border-0">
                                                 <User className="h-4 w-4 text-muted-foreground" />
                                                 {shift.user}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            {new Date(shift.started_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                                            {' – '}
-                                            {shift.ended_at 
-                                                ? new Date(shift.ended_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-                                                : <Badge variant="default">Aktif</Badge>}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            {formatMoney(shift.opening_cash, currency)}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            {shift.closing_cash !== null 
-                                                ? formatMoney(shift.closing_cash, currency)
-                                                : '-'}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            {formatMoney(shift.expected_cash, currency)}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex items-center justify-end gap-1">
-                                                {getVarianceIcon(shift.variance)}
-                                                <span className={getVarianceClass(shift.variance)}>
-                                                    {shift.variance !== null 
-                                                        ? formatMoney(shift.variance, currency)
+                                            </TableCell>
+                                            <TableCell className="flex flex-col lg:table-cell pb-2 lg:pb-0 border-0">
+                                                <span className="text-xs text-muted-foreground lg:hidden">Waktu</span>
+                                                <span className="text-sm">
+                                                    {new Date(shift.started_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                                    {' – '}
+                                                    {shift.ended_at 
+                                                        ? new Date(shift.ended_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                                                        : <Badge variant="default" className="hidden lg:inline-flex">Aktif</Badge>}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="flex justify-between lg:table-cell lg:text-right pb-1 lg:pb-0 border-0">
+                                                <span className="text-xs text-muted-foreground lg:hidden">Pembukaan</span>
+                                                <span className="text-sm">{formatMoney(shift.opening_cash, currency)}</span>
+                                            </TableCell>
+                                            <TableCell className="flex justify-between lg:table-cell lg:text-right pb-1 lg:pb-0 border-0">
+                                                <span className="text-xs text-muted-foreground lg:hidden">Penutupan</span>
+                                                <span className="text-sm">
+                                                    {shift.closing_cash !== null 
+                                                        ? formatMoney(shift.closing_cash, currency)
                                                         : '-'}
                                                 </span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-right font-semibold">
-                                            {formatMoney(shift.total_sales, currency)}
-                                        </TableCell>
-                                        <TableCell>{shift.transaction_count}</TableCell>
-                                    </TableRow>
-                                ))}
-                                {(!data || data.data.length === 0) && (
-                                    <TableRow>
-                                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                                            Tidak ada shift dalam rentang tanggal ini
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
+                                            </TableCell>
+                                            <TableCell className="flex justify-between lg:table-cell lg:text-right pb-1 lg:pb-0 border-0">
+                                                <span className="text-xs text-muted-foreground lg:hidden">Seharusnya</span>
+                                                <span className="text-sm">{formatMoney(shift.expected_cash, currency)}</span>
+                                            </TableCell>
+                                            <TableCell className="flex justify-between lg:table-cell lg:text-right pb-1 lg:pb-0 border-0">
+                                                <span className="text-xs text-muted-foreground lg:hidden">Variance</span>
+                                                <div className="flex items-center gap-1">
+                                                    {getVarianceIcon(shift.variance)}
+                                                    <span className={getVarianceClass(shift.variance)}>
+                                                        {shift.variance !== null 
+                                                            ? formatMoney(shift.variance, currency)
+                                                            : '-'}
+                                                    </span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="flex justify-between lg:table-cell lg:text-right pb-1 lg:pb-0 border-0">
+                                                <span className="text-xs text-muted-foreground lg:hidden">Penjualan</span>
+                                                <span className="font-semibold">{formatMoney(shift.total_sales, currency)}</span>
+                                            </TableCell>
+                                            <TableCell className="flex justify-between lg:table-cell pb-0 lg:pb-0 border-0">
+                                                <span className="text-xs text-muted-foreground lg:hidden">Transaksi</span>
+                                                <span className="text-sm">{shift.transaction_count}</span>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                    {(!data || data.data.length === 0) && (
+                                        <TableRow>
+                                            <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                                                Tidak ada shift dalam rentang tanggal ini
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
 
                         {/* Pagination */}
                         {data && data.last_page > 1 && (

@@ -6,14 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
-import {
     Dialog,
     DialogContent,
     DialogHeader,
@@ -44,7 +36,6 @@ import { useCartStore } from '@/stores/cartStore';
 import { formatMoney, formatNumber, parseMoneyToInt } from '@/lib/utils';
 import type { Product } from '@/types/models';
 import { toast } from 'sonner';
-import { fetchWithCsrf } from '@/lib/csrf';
 
 interface HoldTransaction {
     id: number;
@@ -639,12 +630,12 @@ export default function CashierIndex({
                         {/* Cart */}
                         <Card>
                             <CardHeader className="pb-3">
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                     <CardTitle className="flex items-center gap-2">
                                         <ShoppingCart className="h-5 w-5" />
                                         Keranjang
                                     </CardTitle>
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 flex-wrap">
                                         <Button
                                             variant="outline"
                                             size="sm"
@@ -652,27 +643,30 @@ export default function CashierIndex({
                                                 setHoldsOpen(true);
                                                 loadHolds();
                                             }}
+                                            className="flex-1 sm:flex-none"
                                         >
-                                            <Inbox className="h-4 w-4 mr-1" />
-                                            Tertunda
+                                            <Inbox className="h-4 w-4 sm:mr-1" />
+                                            <span className="hidden sm:inline">Tertunda</span>
                                         </Button>
                                         <Button
                                             variant="outline"
                                             size="sm"
                                             onClick={handleHold}
                                             disabled={items.length === 0 || processing}
+                                            className="flex-1 sm:flex-none"
                                         >
-                                            <Pause className="h-4 w-4 mr-1" />
-                                            Tunda
+                                            <Pause className="h-4 w-4 sm:mr-1" />
+                                            <span className="hidden sm:inline">Tunda</span>
                                         </Button>
                                         <Button
                                             variant="outline"
                                             size="sm"
                                             onClick={clearCart}
                                             disabled={items.length === 0}
+                                            className="flex-1 sm:flex-none"
                                         >
-                                            <Trash2 className="h-4 w-4 mr-1" />
-                                            Hapus
+                                            <Trash2 className="h-4 w-4 sm:mr-1" />
+                                            <span className="hidden sm:inline">Hapus</span>
                                         </Button>
                                     </div>
                                 </div>
@@ -683,79 +677,80 @@ export default function CashierIndex({
                                         Keranjang kosong.
                                     </div>
                                 ) : (
-                                    <div className="overflow-x-auto">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead className="min-w-[120px]">Produk</TableHead>
-                                                    <TableHead className="text-right min-w-[80px]">Harga</TableHead>
-                                                    <TableHead className="text-center min-w-[140px]">Qty</TableHead>
-                                                    <TableHead className="text-right min-w-[80px]">Total</TableHead>
-                                                    <TableHead className="w-10"></TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {items.map((item) => (
-                                                    <TableRow key={item.product_id}>
-                                                        <TableCell className="min-w-[120px]">
-                                                            <div className="font-medium break-words">{item.name}</div>
-                                                            <div className="text-xs text-muted-foreground">
-                                                                ID: {item.product_id}
-                                                            </div>
-                                                        </TableCell>
-                                                        <TableCell className="text-right whitespace-nowrap">
-                                                            {formatMoney(item.price, currency)}
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <div className="flex items-center justify-center gap-1">
-                                                                <Button
-                                                                    variant="outline"
-                                                                    size="icon"
-                                                                    className="h-7 w-7 flex-shrink-0"
-                                                                    onClick={() => updateQty(item.product_id, item.qty - 1)}
-                                                                    disabled={item.qty <= 1}
-                                                                >
-                                                                    <Minus className="h-3 w-3" />
-                                                                </Button>
-                                                                <Input
-                                                                    type="number"
-                                                                    min={1}
-                                                                    max={item.stock}
-                                                                    value={item.qty}
-                                                                    onChange={(e) => updateQty(item.product_id, parseInt(e.target.value) || 1)}
-                                                                    className="h-7 w-14 text-center flex-shrink-0"
-                                                                />
-                                                                <Button
-                                                                    variant="outline"
-                                                                    size="icon"
-                                                                    className="h-7 w-7 flex-shrink-0"
-                                                                    onClick={() => updateQty(item.product_id, item.qty + 1)}
-                                                                    disabled={item.qty >= item.stock}
-                                                                >
-                                                                    <Plus className="h-3 w-3" />
-                                                                </Button>
-                                                            </div>
-                                                            <div className="text-xs text-muted-foreground text-center mt-1 whitespace-nowrap">
-                                                                Stok: {item.stock}
-                                                            </div>
-                                                        </TableCell>
-                                                        <TableCell className="text-right whitespace-nowrap">
-                                                            {formatMoney(item.price * item.qty, currency)}
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-7 w-7 text-destructive"
-                                                                onClick={() => removeItem(item.product_id)}
-                                                            >
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </Button>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
+                                    <div className="divide-y">
+                                        {items.map((item) => (
+                                            <div key={item.product_id} className="p-4 space-y-3">
+                                                {/* Product Name & Price */}
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="font-medium break-words">{item.name}</div>
+                                                        <div className="text-xs text-muted-foreground">
+                                                            ID: {item.product_id}
+                                                        </div>
+                                                    </div>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-destructive flex-shrink-0"
+                                                        onClick={() => removeItem(item.product_id)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+
+                                                {/* Price per item */}
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-muted-foreground">Harga</span>
+                                                    <span className="whitespace-nowrap">{formatMoney(item.price, currency)}</span>
+                                                </div>
+
+                                                {/* Quantity Controls */}
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-sm text-muted-foreground">Jumlah</span>
+                                                    <div className="flex items-center gap-1 shrink-0">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="icon"
+                                                            className="h-8 w-8 shrink-0"
+                                                            onClick={() => updateQty(item.product_id, item.qty - 1)}
+                                                            disabled={item.qty <= 1}
+                                                        >
+                                                            <Minus className="h-3 w-3" />
+                                                        </Button>
+                                                        <Input
+                                                            type="number"
+                                                            min={1}
+                                                            max={item.stock}
+                                                            value={item.qty}
+                                                            onChange={(e) => updateQty(item.product_id, parseInt(e.target.value) || 1)}
+                                                            className="h-8 w-14 text-center shrink-0"
+                                                        />
+                                                        <Button
+                                                            variant="outline"
+                                                            size="icon"
+                                                            className="h-8 w-8 shrink-0"
+                                                            onClick={() => updateQty(item.product_id, item.qty + 1)}
+                                                            disabled={item.qty >= item.stock}
+                                                        >
+                                                            <Plus className="h-3 w-3" />
+                                                        </Button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Stock info */}
+                                                <div className="text-xs text-muted-foreground text-right">
+                                                    Stok: {item.stock}
+                                                </div>
+
+                                                {/* Total Price */}
+                                                <div className="flex justify-between pt-2 border-t">
+                                                    <span className="font-medium">Total</span>
+                                                    <span className="font-semibold whitespace-nowrap">
+                                                        {formatMoney(item.price * item.qty, currency)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                             </CardContent>

@@ -20,7 +20,6 @@ import {
     DialogFooter,
     DialogDescription,
 } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
     FolderOpen,
     Search,
@@ -162,19 +161,19 @@ export default function CategoriesIndex() {
                 {/* Categories Table */}
                 <Card>
                     <CardContent className="p-0">
-                        <ScrollArea className="h-[500px]">
-                            {loading ? (
-                                <div className="flex items-center justify-center h-full py-12">
-                                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                                    <span className="ml-2 text-muted-foreground">Memuat...</span>
-                                </div>
-                            ) : categories.length === 0 ? (
-                                <div className="text-center py-12 text-muted-foreground">
-                                    Tidak ada kategori ditemukan.
-                                </div>
-                            ) : (
+                        {loading ? (
+                            <div className="flex items-center justify-center h-full py-12">
+                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                                <span className="ml-2 text-muted-foreground">Memuat...</span>
+                            </div>
+                        ) : categories.length === 0 ? (
+                            <div className="text-center py-12 text-muted-foreground">
+                                Tidak ada kategori ditemukan.
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
                                 <Table>
-                                    <TableHeader>
+                                    <TableHeader className="hidden sm:table-header-group">
                                         <TableRow>
                                             <TableHead>Nama</TableHead>
                                             <TableHead>Deskripsi</TableHead>
@@ -184,46 +183,54 @@ export default function CategoriesIndex() {
                                     </TableHeader>
                                     <TableBody>
                                         {categories.map((cat) => (
-                                            <TableRow key={cat.id}>
-                                                <TableCell className="font-medium">
-                                                    {cat.name}
+                                            <TableRow 
+                                                key={cat.id}
+                                                className="flex flex-col sm:table-row border rounded-lg sm:border-0 mb-3 sm:mb-0 mx-3 sm:mx-0 p-4 sm:p-0"
+                                            >
+                                                <TableCell className="flex flex-col sm:table-cell pb-1 sm:pb-0 border-0">
+                                                    <span className="text-xs text-muted-foreground sm:hidden mb-1">Nama</span>
+                                                    <span className="font-medium">{cat.name}</span>
                                                 </TableCell>
-                                                <TableCell>
-                                                    {cat.description || (
-                                                        <span className="text-muted-foreground">-</span>
-                                                    )}
+                                                <TableCell className="flex flex-col sm:table-cell pb-1 sm:pb-0 border-0">
+                                                    <span className="text-xs text-muted-foreground sm:hidden mb-1">Deskripsi</span>
+                                                    <span className="text-sm">
+                                                        {cat.description || (
+                                                            <span className="text-muted-foreground">-</span>
+                                                        )}
+                                                    </span>
                                                 </TableCell>
-                                                <TableCell>
-                                                    {new Date(cat.created_at).toLocaleDateString('id-ID')}
+                                                <TableCell className="flex flex-col sm:table-cell pb-2 sm:pb-0 border-0">
+                                                    <span className="text-xs text-muted-foreground sm:hidden mb-1">Dibuat</span>
+                                                    <span className="text-sm">
+                                                        {new Date(cat.created_at).toLocaleDateString('id-ID')}
+                                                    </span>
                                                 </TableCell>
-                                                <TableCell>
-                                                    <div className="flex justify-end gap-1">
-                                                        <Button
-                                                            variant="outline"
-                                                            size="icon"
-                                                            className="h-8 w-8"
-                                                            asChild
-                                                        >
-                                                            <Link href={`/kategori/${cat.id}/edit`}>
-                                                                <Pencil className="h-4 w-4" />
-                                                            </Link>
-                                                        </Button>
-                                                        <Button
-                                                            variant="outline"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-destructive"
-                                                            onClick={() => setDeleteModal({ open: true, category: cat })}
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
+                                                <TableCell className="flex justify-end gap-2 sm:table-cell sm:text-right border-0 pt-2 sm:pt-0">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="icon"
+                                                        className="h-9 w-9 sm:h-8 sm:w-8"
+                                                        asChild
+                                                    >
+                                                        <Link href={`/kategori/${cat.id}/edit`}>
+                                                            <Pencil className="h-4 w-4" />
+                                                        </Link>
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="icon"
+                                                        className="h-9 w-9 sm:h-8 sm:w-8 text-destructive"
+                                                        onClick={() => setDeleteModal({ open: true, category: cat })}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
                                 </Table>
-                            )}
-                        </ScrollArea>
+                            </div>
+                        )}
                     </CardContent>
 
                     {/* Pagination */}
@@ -242,7 +249,7 @@ export default function CategoriesIndex() {
                                     disabled={pagination.currentPage <= 1}
                                 >
                                     <ChevronLeft className="h-4 w-4" />
-                                    Prev
+                                    <span className="hidden sm:inline ml-1">Prev</span>
                                 </Button>
                                 <Button
                                     variant="outline"
@@ -250,7 +257,7 @@ export default function CategoriesIndex() {
                                     onClick={() => fetchCategories(pagination.currentPage + 1)}
                                     disabled={pagination.currentPage >= pagination.lastPage}
                                 >
-                                    Next
+                                    <span className="hidden sm:inline mr-1">Next</span>
                                     <ChevronRight className="h-4 w-4" />
                                 </Button>
                             </div>

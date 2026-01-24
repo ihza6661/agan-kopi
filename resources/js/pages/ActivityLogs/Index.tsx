@@ -10,7 +10,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
     ClipboardList,
     Loader2,
@@ -97,19 +96,19 @@ export default function ActivityLogsIndex() {
                 {/* Logs Table */}
                 <Card>
                     <CardContent className="p-0">
-                        <ScrollArea className="h-[600px]">
-                            {loading ? (
-                                <div className="flex items-center justify-center h-full py-12">
-                                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                                    <span className="ml-2 text-muted-foreground">Memuat...</span>
-                                </div>
-                            ) : logs.length === 0 ? (
-                                <div className="text-center py-12 text-muted-foreground">
-                                    Tidak ada log aktivitas.
-                                </div>
-                            ) : (
+                        {loading ? (
+                            <div className="flex items-center justify-center h-full py-12">
+                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                                <span className="ml-2 text-muted-foreground">Memuat...</span>
+                            </div>
+                        ) : logs.length === 0 ? (
+                            <div className="text-center py-12 text-muted-foreground">
+                                Tidak ada log aktivitas.
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
                                 <Table>
-                                    <TableHeader>
+                                    <TableHeader className="hidden sm:table-header-group">
                                         <TableRow>
                                             <TableHead>Waktu</TableHead>
                                             <TableHead>Pengguna</TableHead>
@@ -120,30 +119,44 @@ export default function ActivityLogsIndex() {
                                     </TableHeader>
                                     <TableBody>
                                         {logs.map((log) => (
-                                            <TableRow key={log.id}>
-                                                <TableCell className="whitespace-nowrap">
-                                                    {new Date(log.created_at).toLocaleString('id-ID', {
-                                                        day: '2-digit',
-                                                        month: '2-digit',
-                                                        year: 'numeric',
-                                                        hour: '2-digit',
-                                                        minute: '2-digit',
-                                                    })}
+                                            <TableRow 
+                                                key={log.id}
+                                                className="flex flex-col sm:table-row border rounded-lg sm:border-0 mb-3 sm:mb-0 mx-3 sm:mx-0 p-4 sm:p-0"
+                                            >
+                                                <TableCell className="flex flex-col sm:table-cell pb-1 sm:pb-0 border-0">
+                                                    <span className="text-xs text-muted-foreground sm:hidden mb-1">Waktu</span>
+                                                    <span className="text-sm whitespace-nowrap">
+                                                        {new Date(log.created_at).toLocaleString('id-ID', {
+                                                            day: '2-digit',
+                                                            month: '2-digit',
+                                                            year: 'numeric',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit',
+                                                        })}
+                                                    </span>
                                                 </TableCell>
-                                                <TableCell>{log.user_name || '-'}</TableCell>
-                                                <TableCell className="max-w-xs" title={log.description || ''}>
-                                                    <span className="break-words">{log.activity}</span>
+                                                <TableCell className="flex flex-col sm:table-cell pb-1 sm:pb-0 border-0">
+                                                    <span className="text-xs text-muted-foreground sm:hidden mb-1">Pengguna</span>
+                                                    <span className="text-sm">{log.user_name || '-'}</span>
                                                 </TableCell>
-                                                <TableCell className="whitespace-nowrap">{log.ip_address || '-'}</TableCell>
-                                                <TableCell className="max-w-[200px]" title={log.user_agent || ''}>
-                                                    <span className="break-words">{truncateText(log.user_agent, 40)}</span>
+                                                <TableCell className="flex flex-col sm:table-cell pb-1 sm:pb-0 border-0" title={log.description || ''}>
+                                                    <span className="text-xs text-muted-foreground sm:hidden mb-1">Aktivitas</span>
+                                                    <span className="text-sm break-words">{log.activity}</span>
+                                                </TableCell>
+                                                <TableCell className="flex flex-col sm:table-cell pb-1 sm:pb-0 border-0">
+                                                    <span className="text-xs text-muted-foreground sm:hidden mb-1">IP Address</span>
+                                                    <span className="text-sm whitespace-nowrap">{log.ip_address || '-'}</span>
+                                                </TableCell>
+                                                <TableCell className="flex flex-col sm:table-cell pb-0 sm:pb-0 border-0" title={log.user_agent || ''}>
+                                                    <span className="text-xs text-muted-foreground sm:hidden mb-1">User Agent</span>
+                                                    <span className="text-xs break-words">{truncateText(log.user_agent, 40)}</span>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
                                 </Table>
-                            )}
-                        </ScrollArea>
+                            </div>
+                        )}
                     </CardContent>
 
                     {/* Pagination */}
@@ -162,7 +175,7 @@ export default function ActivityLogsIndex() {
                                     disabled={pagination.currentPage <= 1}
                                 >
                                     <ChevronLeft className="h-4 w-4" />
-                                    Prev
+                                    <span className="hidden sm:inline ml-1">Prev</span>
                                 </Button>
                                 <Button
                                     variant="outline"
@@ -170,7 +183,7 @@ export default function ActivityLogsIndex() {
                                     onClick={() => fetchLogs(pagination.currentPage + 1)}
                                     disabled={pagination.currentPage >= pagination.lastPage}
                                 >
-                                    Next
+                                    <span className="hidden sm:inline mr-1">Next</span>
                                     <ChevronRight className="h-4 w-4" />
                                 </Button>
                             </div>

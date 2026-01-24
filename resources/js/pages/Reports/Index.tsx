@@ -372,14 +372,14 @@ export default function ReportsIndex({
                                             <TableRow key={p.id}>
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
-                                                        <Badge variant="outline" className="w-6 h-6 p-0 justify-center">
+                                                        <Badge variant="outline" className="w-6 h-6 p-0 justify-center shrink-0">
                                                             {i + 1}
                                                         </Badge>
-                                                        <span className="font-medium">{p.name}</span>
+                                                        <span className="font-medium truncate">{p.name}</span>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-center">{formatNumber(p.qty)}</TableCell>
-                                                <TableCell className="text-right">
+                                                <TableCell className="text-right whitespace-nowrap">
                                                     {formatMoney(p.total, currency)}
                                                 </TableCell>
                                             </TableRow>
@@ -420,14 +420,14 @@ export default function ReportsIndex({
                                             <TableRow key={p.id}>
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
-                                                        <Badge variant="secondary" className="w-6 h-6 p-0 justify-center">
+                                                        <Badge variant="secondary" className="w-6 h-6 p-0 justify-center shrink-0">
                                                             {i + 1}
                                                         </Badge>
-                                                        <span className="font-medium">{p.name}</span>
+                                                        <span className="font-medium truncate">{p.name}</span>
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-center">{formatNumber(p.qty)}</TableCell>
-                                                <TableCell className="text-right">
+                                                <TableCell className="text-right whitespace-nowrap">
                                                     {formatMoney(p.total, currency)}
                                                 </TableCell>
                                             </TableRow>
