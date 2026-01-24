@@ -49,6 +49,11 @@ class UserService implements UserServiceInterface
 
     public function delete(User $user): void
     {
+        // Check if user has transactions
+        if ($user->transactions()->exists()) {
+            throw new \Exception('Tidak dapat menghapus user ini karena masih memiliki transaksi terkait.');
+        }
+        
         $user->delete();
     }
 
