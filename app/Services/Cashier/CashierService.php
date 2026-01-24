@@ -120,9 +120,9 @@ class CashierService implements CashierServiceInterface
                 Payment::create([
                     'transaction_id' => $trx->id,
                     'method' => $method,
-                    'provider' => null,
+                    'provider' => 'manual', // Use 'manual' instead of null for CASH
                     'provider_transaction_id' => null,
-                    'provider_order_id' => null,
+                    'provider_order_id' => $invoice,
                     'status' => PaymentStatus::SETTLEMENT,
                     'amount' => $total,
                     'paid_at' => now(),
