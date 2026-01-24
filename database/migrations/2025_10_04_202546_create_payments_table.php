@@ -19,7 +19,7 @@ return new class extends Migration
             $table->enum('method', [PaymentMethod::CASH->value, PaymentMethod::QRIS->value])
                 ->default(PaymentMethod::QRIS->value)
                 ->index();
-            $table->string('provider')->default('midtrans')->index();
+            $table->string('provider')->nullable()->index();
             $table->string('provider_transaction_id')->nullable()->index();
             $table->string('provider_order_id')->nullable();
             $table->enum('status', [
@@ -37,7 +37,6 @@ return new class extends Migration
             $table->timestamp('paid_at')->nullable();
             $table->timestamp('expired_at')->nullable();
             $table->timestamps();
-            $table->unique(['provider', 'provider_order_id']);
         });
     }
 
