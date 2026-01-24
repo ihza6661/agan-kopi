@@ -127,6 +127,18 @@ class CashierService implements CashierServiceInterface
                     'amount' => $total,
                     'paid_at' => now(),
                 ]);
+            } else {
+                // For QRIS: create payment record with PENDING status
+                Payment::create([
+                    'transaction_id' => $trx->id,
+                    'method' => $method,
+                    'provider' => 'midtrans',
+                    'provider_transaction_id' => null,
+                    'provider_order_id' => $invoice,
+                    'status' => PaymentStatus::PENDING,
+                    'amount' => $total,
+                    'paid_at' => null,
+                ]);
             }
 
             ActivityLog::create([

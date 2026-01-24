@@ -226,6 +226,15 @@ class CashierController extends Controller
                     'confirmed_at' => now(),
                 ]);
 
+                // Update payment record to SETTLEMENT
+                $payment = $transaction->payments()->where('method', PaymentMethod::QRIS)->first();
+                if ($payment) {
+                    $payment->update([
+                        'status' => \App\Enums\PaymentStatus::SETTLEMENT,
+                        'paid_at' => now(),
+                    ]);
+                }
+
                 // Clean up suspended transaction if this was resumed from one
                 if ($transaction->suspended_from_id) {
                     $original = Transaction::where('id', $transaction->suspended_from_id)
@@ -287,6 +296,14 @@ class CashierController extends Controller
                 $transaction->update([
                     'status' => TransactionStatus::CANCELED,
                 ]);
+
+                // Update payment record to CANCELED
+                $payment = $transaction->payments()->where('method', PaymentMethod::QRIS)->first();
+                if ($payment) {
+                    $payment->update([
+                        'status' => \App\Enums\PaymentStatus::CANCEL,
+                    ]);
+                }
 
                 $this->logger->log('Batalkan QRIS', 'Pembayaran QRIS dibatalkan', [
                     'transaction_id' => $transaction->id,
